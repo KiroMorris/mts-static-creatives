@@ -13,6 +13,7 @@ export function CollagePreview() {
     calloutImages,
     headline,
     subtitle,
+    styleSettings,
     finalCollage,
     setFinalCollage,
     isComposing,
@@ -55,6 +56,8 @@ export function CollagePreview() {
             headline,
             subtitle,
           },
+          textStyle: styleSettings.text,
+          calloutStyle: styleSettings.callout,
         }),
       });
 

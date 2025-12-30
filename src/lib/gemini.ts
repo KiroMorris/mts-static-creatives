@@ -108,9 +108,8 @@ export async function generateImage(
   const result = await model.generateContent({
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      // @ts-expect-error - responseModalities is a valid property for image generation
+      // @ts-expect-error - responseModalities and imageConfig are valid for image generation
       responseModalities: ['IMAGE', 'TEXT'],
-      // @ts-expect-error - imageConfig is a valid property for image generation
       imageConfig: {
         aspectRatio: aspectRatio,
       },
@@ -157,9 +156,8 @@ export async function generateImageWithReferences(
   const result = await model.generateContent({
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      // @ts-expect-error - responseModalities is a valid property for image generation
+      // @ts-expect-error - responseModalities and imageConfig are valid for image generation
       responseModalities: ['IMAGE', 'TEXT'],
-      // @ts-expect-error - imageConfig is a valid property for image generation
       imageConfig: {
         aspectRatio: aspectRatio,
       },

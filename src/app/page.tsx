@@ -4,6 +4,7 @@ import React from 'react';
 import { useCreativeStore } from '@/store/useCreativeStore';
 import { ProgressSteps } from '@/components/ui/ProgressSteps';
 import { ProductUploader } from '@/components/upload/ProductUploader';
+import { StyleControlPanel } from '@/components/style/StyleControlPanel';
 import { HeroPreview } from '@/components/preview/HeroPreview';
 import { CalloutGrid } from '@/components/preview/CalloutGrid';
 import { TextInputForm } from '@/components/text/TextInputForm';
@@ -14,17 +15,20 @@ export default function Home() {
   const { currentStep, goToStep, reset } = useCreativeStore();
 
   // Render the current step's component
+  // Steps: 1=Upload, 2=Style, 3=Hero, 4=Callouts, 5=Text, 6=Export
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return <ProductUploader />;
       case 2:
-        return <HeroPreview />;
+        return <StyleControlPanel />;
       case 3:
-        return <CalloutGrid />;
+        return <HeroPreview />;
       case 4:
-        return <TextInputForm />;
+        return <CalloutGrid />;
       case 5:
+        return <TextInputForm />;
+      case 6:
         return <CollagePreview />;
       default:
         return <ProductUploader />;

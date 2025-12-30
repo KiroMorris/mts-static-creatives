@@ -11,6 +11,7 @@ export function HeroPreview() {
   const {
     productImage,
     heroImage,
+    styleSettings,
     setHeroImage,
     isGeneratingHero,
     setLoading,
@@ -44,6 +45,7 @@ export function HeroPreview() {
         body: JSON.stringify({
           productImageUrl: productImage,
           customPrompt: prompt || customPrompt || undefined,
+          modelSceneStyle: styleSettings.modelScene,
         }),
       });
 

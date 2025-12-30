@@ -8,6 +8,26 @@ import { TEMPLATE } from './constants';
 // Types
 // ============================================================================
 
+export interface TextStyleOptions {
+  headlineFontSize?: number;
+  headlineColor?: string;
+  headlineShadow?: boolean;
+  headlinePosition?: 'top' | 'middle' | 'bottom';
+  subtitleFontSize?: number;
+  subtitleColor?: string;
+  subtitleLetterSpacing?: number;
+}
+
+export interface CalloutStyleOptions {
+  size?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  borderRadius?: number;
+  gap?: number;
+  position?: 'left' | 'right';
+  verticalPosition?: 'top' | 'middle' | 'bottom';
+}
+
 export interface ComposeOptions {
   heroImageBuffer: Buffer;
   calloutBuffers: {
@@ -19,6 +39,8 @@ export interface ComposeOptions {
     headline: string;
     subtitle: string;
   };
+  textStyle?: TextStyleOptions;
+  calloutStyle?: CalloutStyleOptions;
 }
 
 export interface ComposeResult {
@@ -103,39 +125,68 @@ export function wrapText(text: string, maxCharsPerLine: number = 15): string[] {
  * Create SVG text overlay with headline and subtitle
  * Uses embedded font-face for consistent rendering
  */
-export function createTextSVG(headline: string, subtitle: string): string {
-  // Wrap headline text into lines
-  const headlineLines = wrapText(headline, 15);
+export function createTextSVG(
+  headline: string,
+  subtitle: string,
+  style?: TextStyleOptions
+): string {
+  // Use style options or defaults
+  const fontSize = style?.headlineFontSize || HEADLINE_FONT_SIZE;
+  const headlineColor = style?.headlineColor || 'white';
+  const showShadow = style?.headlineShadow !== false; // default true
+  const position = style?.headlinePosition || 'middle';
+  const subtitleFontSize = style?.subtitleFontSize || SUBTITLE_FONT_SIZE;
+  const subtitleColor = style?.subtitleColor || 'rgba(255,255,255,0.9)';
+  const subtitleLetterSpacing = style?.subtitleLetterSpacing || SUBTITLE_LETTER_SPACING;
+
+  // Calculate Y position based on headline position
+  const lineHeight = Math.round(fontSize * 1.1);
+  let baseY: number;
+  switch (position) {
+    case 'top':
+      baseY = 200;
+      break;
+    case 'bottom':
+      baseY = 1400;
+      break;
+    case 'middle':
+    default:
+      baseY = HEADLINE_Y;
+  }
+
+  // Wrap headline text into lines (adjust chars per line based on font size)
+  const charsPerLine = Math.round(15 * (72 / fontSize));
+  const headlineLines = wrapText(headline, charsPerLine);
 
   // Generate headline text elements
   const headlineSVG = headlineLines.map((line, i) => `
     <text
       x="${TEXT_X}"
-      y="${HEADLINE_Y + (i * HEADLINE_LINE_HEIGHT)}"
+      y="${baseY + (i * lineHeight)}"
       font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-      font-size="${HEADLINE_FONT_SIZE}"
+      font-size="${fontSize}"
       font-weight="700"
-      fill="white"
+      fill="${headlineColor}"
       letter-spacing="-0.02em"
     >${escapeXml(line)}</text>
   `).join('');
 
-  // Add text shadow via filter for each headline line
-  const headlineShadowSVG = headlineLines.map((line, i) => `
+  // Add text shadow via filter for each headline line (if enabled)
+  const headlineShadowSVG = showShadow ? headlineLines.map((line, i) => `
     <text
       x="${TEXT_X}"
-      y="${HEADLINE_Y + (i * HEADLINE_LINE_HEIGHT)}"
+      y="${baseY + (i * lineHeight)}"
       font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-      font-size="${HEADLINE_FONT_SIZE}"
+      font-size="${fontSize}"
       font-weight="700"
       fill="rgba(0,0,0,0.3)"
       letter-spacing="-0.02em"
       filter="url(#shadow)"
     >${escapeXml(line)}</text>
-  `).join('');
+  `).join('') : '';
 
   // Calculate subtitle Y position (below last headline line + offset)
-  const subtitleY = HEADLINE_Y + (headlineLines.length * HEADLINE_LINE_HEIGHT) + SUBTITLE_Y_OFFSET;
+  const subtitleY = baseY + (headlineLines.length * lineHeight) + SUBTITLE_Y_OFFSET;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -157,10 +208,10 @@ export function createTextSVG(headline: string, subtitle: string): string {
     x="${TEXT_X}"
     y="${subtitleY}"
     font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
-    font-size="${SUBTITLE_FONT_SIZE}"
+    font-size="${subtitleFontSize}"
     font-weight="500"
-    letter-spacing="${SUBTITLE_LETTER_SPACING}"
-    fill="rgba(255,255,255,0.9)"
+    letter-spacing="${subtitleLetterSpacing}px"
+    fill="${subtitleColor}"
     text-transform="uppercase"
   >${escapeXml(subtitle.toUpperCase())}</text>
 </svg>`;
@@ -169,10 +220,19 @@ export function createTextSVG(headline: string, subtitle: string): string {
 /**
  * Prepare callout image: resize to square, add rounded corners and white border
  */
-export async function prepareCallout(buffer: Buffer): Promise<Buffer> {
-  const innerWidth = CALLOUT_WIDTH - (CALLOUT_BORDER_WIDTH * 2);
-  const innerHeight = CALLOUT_HEIGHT - (CALLOUT_BORDER_WIDTH * 2);
-  const innerRadius = Math.max(0, CALLOUT_RADIUS - CALLOUT_BORDER_WIDTH);
+export async function prepareCallout(
+  buffer: Buffer,
+  style?: CalloutStyleOptions
+): Promise<Buffer> {
+  // Use style options or defaults
+  const size = style?.size || CALLOUT_WIDTH;
+  const borderWidth = style?.borderWidth ?? CALLOUT_BORDER_WIDTH;
+  const borderColor = style?.borderColor || CALLOUT_BORDER_COLOR;
+  const borderRadius = style?.borderRadius ?? CALLOUT_RADIUS;
+
+  const innerWidth = size - (borderWidth * 2);
+  const innerHeight = size - (borderWidth * 2);
+  const innerRadius = Math.max(0, borderRadius - borderWidth);
 
   // Create rounded rectangle mask for inner image
   const roundedMask = Buffer.from(`
@@ -207,26 +267,30 @@ export async function prepareCallout(buffer: Buffer): Promise<Buffer> {
     .png()
     .toBuffer();
 
-  // Create white border frame
+  // Create border frame (skip if borderWidth is 0)
+  if (borderWidth === 0) {
+    return rounded;
+  }
+
   const borderFrame = Buffer.from(`
-    <svg width="${CALLOUT_WIDTH}" height="${CALLOUT_HEIGHT}">
+    <svg width="${size}" height="${size}">
       <rect
-        width="${CALLOUT_WIDTH}"
-        height="${CALLOUT_HEIGHT}"
-        rx="${CALLOUT_RADIUS}"
-        ry="${CALLOUT_RADIUS}"
-        fill="${CALLOUT_BORDER_COLOR}"
+        width="${size}"
+        height="${size}"
+        rx="${borderRadius}"
+        ry="${borderRadius}"
+        fill="${borderColor}"
       />
     </svg>
   `);
 
-  // Composite: white border frame + rounded image inside
+  // Composite: border frame + rounded image inside
   const withBorder = await sharp(borderFrame)
     .composite([
       {
         input: rounded,
-        top: CALLOUT_BORDER_WIDTH,
-        left: CALLOUT_BORDER_WIDTH
+        top: borderWidth,
+        left: borderWidth
       }
     ])
     .png()
@@ -287,11 +351,37 @@ export async function prepareCalloutWithBorder(
 /**
  * Compose the final collage from hero, callouts, and text
  *
- * @param options - Hero image buffer, callout buffers, and text content
+ * @param options - Hero image buffer, callout buffers, text content, and style options
  * @returns Buffer containing the final PNG image
  */
 export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
-  const { heroImageBuffer, calloutBuffers, text } = options;
+  const { heroImageBuffer, calloutBuffers, text, textStyle, calloutStyle } = options;
+
+  // Get callout style values with defaults
+  const calloutSize = calloutStyle?.size || CALLOUT_WIDTH;
+  const calloutGap = calloutStyle?.gap ?? CALLOUT_GAP;
+  const calloutPosition = calloutStyle?.position || 'left';
+  const calloutVerticalPosition = calloutStyle?.verticalPosition || 'middle';
+
+  // Calculate callout X position
+  const calloutX = calloutPosition === 'right'
+    ? CANVAS_WIDTH - calloutSize - 48
+    : CALLOUT_X;
+
+  // Calculate callout Y start position based on vertical position
+  let calloutStartY: number;
+  const totalCalloutsHeight = (calloutSize * 3) + (calloutGap * 2);
+  switch (calloutVerticalPosition) {
+    case 'top':
+      calloutStartY = 200;
+      break;
+    case 'bottom':
+      calloutStartY = CANVAS_HEIGHT - totalCalloutsHeight - 100;
+      break;
+    case 'middle':
+    default:
+      calloutStartY = Math.round((CANVAS_HEIGHT - totalCalloutsHeight) / 2) + 200;
+  }
 
   // 1. Resize hero image to fill the entire canvas
   const heroResized = await sharp(heroImageBuffer)
@@ -301,21 +391,21 @@ export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
     })
     .toBuffer();
 
-  // 2. Prepare all three callout images with rounded corners
+  // 2. Prepare all three callout images with rounded corners and styles
   const [callout1, callout2, callout3] = await Promise.all([
-    prepareCallout(calloutBuffers.detail),
-    prepareCallout(calloutBuffers.fit),
-    prepareCallout(calloutBuffers.pose)
+    prepareCallout(calloutBuffers.detail, calloutStyle),
+    prepareCallout(calloutBuffers.fit, calloutStyle),
+    prepareCallout(calloutBuffers.pose, calloutStyle)
   ]);
 
-  // 3. Create text overlay as SVG buffer
-  const textOverlaySVG = createTextSVG(text.headline, text.subtitle);
+  // 3. Create text overlay as SVG buffer with styles
+  const textOverlaySVG = createTextSVG(text.headline, text.subtitle, textStyle);
   const textOverlayBuffer = Buffer.from(textOverlaySVG);
 
   // 4. Calculate callout Y positions
-  const callout1Y = CALLOUT_START_Y;
-  const callout2Y = CALLOUT_START_Y + CALLOUT_HEIGHT + CALLOUT_GAP;
-  const callout3Y = CALLOUT_START_Y + (CALLOUT_HEIGHT + CALLOUT_GAP) * 2;
+  const callout1Y = calloutStartY;
+  const callout2Y = calloutStartY + calloutSize + calloutGap;
+  const callout3Y = calloutStartY + (calloutSize + calloutGap) * 2;
 
   // 5. Composite all layers onto the hero background
   const composite = await sharp(heroResized)
@@ -330,19 +420,19 @@ export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
       {
         input: callout1,
         top: callout1Y,
-        left: CALLOUT_X
+        left: calloutX
       },
       // Callout 2 - Fit shot
       {
         input: callout2,
         top: callout2Y,
-        left: CALLOUT_X
+        left: calloutX
       },
-      // Callout 3 - Pose shot (partially off-canvas at y=1840)
+      // Callout 3 - Pose shot
       {
         input: callout3,
         top: callout3Y,
-        left: CALLOUT_X
+        left: calloutX
       }
     ])
     .png({ quality: 100, compressionLevel: 6 })

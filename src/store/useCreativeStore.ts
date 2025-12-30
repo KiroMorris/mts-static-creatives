@@ -1,10 +1,20 @@
 import { create } from 'zustand';
-import type { CreativeStore, Step, CalloutType } from '@/types';
+import type {
+  CreativeStore,
+  Step,
+  CalloutType,
+  StyleSettings,
+  ModelSceneStyle,
+  TextStyle,
+  CalloutStyle,
+} from '@/types';
+import { DEFAULT_STYLE_SETTINGS } from '@/types';
 
 const initialState = {
   currentStep: 1 as Step,
   productImage: null,
   productImageFile: null,
+  styleSettings: DEFAULT_STYLE_SETTINGS,
   heroImage: null,
   heroPrompt: '',
   calloutImages: {
@@ -27,6 +37,35 @@ export const useCreativeStore = create<CreativeStore>((set) => ({
 
   setProductImage: (url: string, file: File) =>
     set({ productImage: url, productImageFile: file, error: null }),
+
+  setStyleSettings: (settings: Partial<StyleSettings>) =>
+    set((state) => ({
+      styleSettings: { ...state.styleSettings, ...settings },
+    })),
+
+  setModelSceneStyle: (style: Partial<ModelSceneStyle>) =>
+    set((state) => ({
+      styleSettings: {
+        ...state.styleSettings,
+        modelScene: { ...state.styleSettings.modelScene, ...style },
+      },
+    })),
+
+  setTextStyle: (style: Partial<TextStyle>) =>
+    set((state) => ({
+      styleSettings: {
+        ...state.styleSettings,
+        text: { ...state.styleSettings.text, ...style },
+      },
+    })),
+
+  setCalloutStyle: (style: Partial<CalloutStyle>) =>
+    set((state) => ({
+      styleSettings: {
+        ...state.styleSettings,
+        callout: { ...state.styleSettings.callout, ...style },
+      },
+    })),
 
   setHeroImage: (url: string) =>
     set({ heroImage: url, error: null }),
@@ -51,7 +90,7 @@ export const useCreativeStore = create<CreativeStore>((set) => ({
 
   nextStep: () =>
     set((state) => ({
-      currentStep: Math.min(state.currentStep + 1, 5) as Step,
+      currentStep: Math.min(state.currentStep + 1, 6) as Step,
     })),
 
   prevStep: () =>

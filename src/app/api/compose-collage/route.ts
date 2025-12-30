@@ -28,6 +28,24 @@ interface ComposeCollageRequest {
     headline: string;
     subtitle: string;
   };
+  textStyle?: {
+    headlineFontSize: number;
+    headlineColor: string;
+    headlineShadow: boolean;
+    headlinePosition: 'top' | 'middle' | 'bottom';
+    subtitleFontSize: number;
+    subtitleColor: string;
+    subtitleLetterSpacing: number;
+  };
+  calloutStyle?: {
+    size: number;
+    borderWidth: number;
+    borderColor: string;
+    borderRadius: number;
+    gap: number;
+    position: 'left' | 'right';
+    verticalPosition: 'top' | 'middle' | 'bottom';
+  };
   outputFormat?: 'base64' | 'file';
   fileFormat?: 'png' | 'jpeg' | 'webp';
 }
@@ -179,6 +197,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       heroImageUrl,
       callouts,
       text,
+      textStyle,
+      calloutStyle,
       outputFormat = 'base64',
       fileFormat = 'png'
     } = body as ComposeCollageRequest;
@@ -206,7 +226,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       );
     }
 
-    // Compose the collage
+    // Compose the collage with styles
     const collageBuffer = await composeCollage({
       heroImageBuffer: heroBuffer,
       calloutBuffers: {
@@ -217,7 +237,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       text: {
         headline: text.headline,
         subtitle: text.subtitle
-      }
+      },
+      textStyle,
+      calloutStyle
     });
 
     const collageId = generateCollageId();

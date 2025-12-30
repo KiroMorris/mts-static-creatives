@@ -68,8 +68,9 @@ export const API = {
 // Step labels
 export const STEPS = [
   { number: 1, label: 'Upload', description: 'Upload product image' },
-  { number: 2, label: 'Hero', description: 'Generate hero image' },
-  { number: 3, label: 'Callouts', description: 'Generate detail shots' },
-  { number: 4, label: 'Text', description: 'Add headline & subtitle' },
-  { number: 5, label: 'Export', description: 'Download your creative' },
+  { number: 2, label: 'Style', description: 'Customize appearance' },
+  { number: 3, label: 'Hero', description: 'Generate hero image' },
+  { number: 4, label: 'Callouts', description: 'Generate detail shots' },
+  { number: 5, label: 'Text', description: 'Add headline & subtitle' },
+  { number: 6, label: 'Export', description: 'Download your creative' },
 ] as const;

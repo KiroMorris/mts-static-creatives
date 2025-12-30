@@ -4,13 +4,13 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { generateImage, imageUrlToBase64, generateImageId } from '@/lib/gemini';
 import { PROMPTS } from '@/lib/prompts';
-import type { HeroGenerationResponse, GenerationStyle } from '@/types';
+import type { HeroGenerationResponse, ModelSceneStyle } from '@/types';
 
 interface GenerateHeroRequest {
   productImageUrl: string;
-  productImageId: string;
+  productImageId?: string;
   customPrompt?: string;
-  style?: GenerationStyle;
+  modelSceneStyle?: ModelSceneStyle;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<HeroGenerationResponse>> {
@@ -51,34 +51,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<HeroGener
       );
     }
 
-    // Build the prompt
+    // Build the prompt with style settings
     let prompt: string;
     if (body.customPrompt) {
       prompt = body.customPrompt;
     } else {
-      // Use default prompt from prompts.ts
-      // Extract color/type from style if available, otherwise use defaults
+      // Use default prompt from prompts.ts with style settings
       const productType = 'hoodie'; // Default for MVP
       const productColor = 'the shown'; // Let AI detect from image
-      prompt = PROMPTS.hero(productColor, productType);
+      prompt = PROMPTS.hero(productColor, productType, body.modelSceneStyle);
     }
 
-    // Add style modifiers if provided
-    if (body.style) {
-      const styleAdditions: string[] = [];
-      if (body.style.modelGender && body.style.modelGender !== 'female') {
-        styleAdditions.push(`Model gender: ${body.style.modelGender}`);
-      }
-      if (body.style.setting && body.style.setting !== 'studio') {
-        styleAdditions.push(`Setting: ${body.style.setting} environment`);
-      }
-      if (body.style.mood && body.style.mood !== 'casual') {
-        styleAdditions.push(`Mood: ${body.style.mood}`);
-      }
-      if (styleAdditions.length > 0) {
-        prompt += '\n\nAdditional style requirements:\n' + styleAdditions.join('\n');
-      }
-    }
+    // Style is integrated in the prompt via PROMPTS.hero()
+    console.log('Generated hero prompt:', prompt.substring(0, 200) + '...');
 
     // Generate the hero image using Gemini
     let generatedImage;
