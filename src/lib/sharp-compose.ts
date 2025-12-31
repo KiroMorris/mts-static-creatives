@@ -12,10 +12,19 @@ export interface TextStyleOptions {
   headlineFontSize?: number;
   headlineColor?: string;
   headlineShadow?: boolean;
-  headlinePosition?: 'top' | 'middle' | 'bottom';
+  headlineX?: number;           // Direct X position (0-1080)
+  headlineY?: number;           // Direct Y position (0-1920)
   subtitleFontSize?: number;
   subtitleColor?: string;
   subtitleLetterSpacing?: number;
+  subtitleGap?: number;         // Gap between headline and subtitle
+}
+
+// Per-callout zoom settings
+export interface CalloutZoomOptions {
+  zoom?: number;    // Zoom level (1.0 = normal, 2.0 = 2x zoom)
+  focusX?: number;  // Horizontal focus point (0-100, 50 = center)
+  focusY?: number;  // Vertical focus point (0-100, 50 = center)
 }
 
 export interface CalloutStyleOptions {
@@ -24,8 +33,18 @@ export interface CalloutStyleOptions {
   borderColor?: string;
   borderRadius?: number;
   gap?: number;
-  position?: 'left' | 'right';
-  verticalPosition?: 'top' | 'middle' | 'bottom';
+  x?: number;    // Direct X position (0-1080)
+  y?: number;    // Direct Y position for first callout (0-1920)
+  // Per-callout zoom settings
+  detail?: CalloutZoomOptions;
+  fit?: CalloutZoomOptions;
+  pose?: CalloutZoomOptions;
+}
+
+export interface HeroStyleOptions {
+  zoom?: number;    // Zoom level (1.0 = normal, 2.0 = 2x zoom)
+  focusX?: number;  // Horizontal focus point (0-100, 50 = center)
+  focusY?: number;  // Vertical focus point (0-100, 50 = center)
 }
 
 export interface ComposeOptions {
@@ -39,6 +58,7 @@ export interface ComposeOptions {
     headline: string;
     subtitle: string;
   };
+  heroStyle?: HeroStyleOptions;
   textStyle?: TextStyleOptions;
   calloutStyle?: CalloutStyleOptions;
 }
@@ -123,7 +143,7 @@ export function wrapText(text: string, maxCharsPerLine: number = 15): string[] {
 
 /**
  * Create SVG text overlay with headline and subtitle
- * Uses embedded font-face for consistent rendering
+ * Uses direct X/Y positioning for precise control
  */
 export function createTextSVG(
   headline: string,
@@ -134,35 +154,42 @@ export function createTextSVG(
   const fontSize = style?.headlineFontSize || HEADLINE_FONT_SIZE;
   const headlineColor = style?.headlineColor || 'white';
   const showShadow = style?.headlineShadow !== false; // default true
-  const position = style?.headlinePosition || 'middle';
   const subtitleFontSize = style?.subtitleFontSize || SUBTITLE_FONT_SIZE;
   const subtitleColor = style?.subtitleColor || 'rgba(255,255,255,0.9)';
   const subtitleLetterSpacing = style?.subtitleLetterSpacing || SUBTITLE_LETTER_SPACING;
+  const subtitleGap = style?.subtitleGap ?? SUBTITLE_Y_OFFSET;
 
-  // Calculate Y position based on headline position
+  // Use direct X/Y positioning from style, or fallback to defaults
+  // Round to ensure integer coordinates for consistent rendering
+  const baseX = Math.round(style?.headlineX ?? TEXT_X);
+  const baseY = Math.round(style?.headlineY ?? HEADLINE_Y);
   const lineHeight = Math.round(fontSize * 1.1);
-  let baseY: number;
-  switch (position) {
-    case 'top':
-      baseY = 200;
-      break;
-    case 'bottom':
-      baseY = 1400;
-      break;
-    case 'middle':
-    default:
-      baseY = HEADLINE_Y;
-  }
+
+  // IMPORTANT: SVG text 'y' attribute positions the BASELINE, not the top of the text.
+  // CSS 'top' positions the top of the element. To match CSS behavior, we need to
+  // add an offset equal to the font's ascent (approximately 0.85 * fontSize for most fonts).
+  // This makes the visual top of the text align with the specified Y position.
+  //
+  // For Inter font and similar sans-serif fonts:
+  // - Cap height is typically around 0.70-0.75 of em
+  // - Ascender is typically around 0.85-0.93 of em
+  // We use 0.85 as a good approximation that works across common fonts
+  const ascenderRatio = 0.85;
+  const headlineAscenderOffset = Math.round(fontSize * ascenderRatio);
+  const subtitleAscenderOffset = Math.round(subtitleFontSize * ascenderRatio);
+
+  console.log('createTextSVG - baseX:', baseX, 'baseY:', baseY, 'fontSize:', fontSize, 'lineHeight:', lineHeight, 'ascenderOffset:', headlineAscenderOffset);
 
   // Wrap headline text into lines (adjust chars per line based on font size)
   const charsPerLine = Math.round(15 * (72 / fontSize));
   const headlineLines = wrapText(headline, charsPerLine);
 
   // Generate headline text elements
+  // Y position = baseY + ascender offset to align top of text with specified position
   const headlineSVG = headlineLines.map((line, i) => `
     <text
-      x="${TEXT_X}"
-      y="${baseY + (i * lineHeight)}"
+      x="${baseX}"
+      y="${baseY + headlineAscenderOffset + (i * lineHeight)}"
       font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
       font-size="${fontSize}"
       font-weight="700"
@@ -174,8 +201,8 @@ export function createTextSVG(
   // Add text shadow via filter for each headline line (if enabled)
   const headlineShadowSVG = showShadow ? headlineLines.map((line, i) => `
     <text
-      x="${TEXT_X}"
-      y="${baseY + (i * lineHeight)}"
+      x="${baseX}"
+      y="${baseY + headlineAscenderOffset + (i * lineHeight)}"
       font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
       font-size="${fontSize}"
       font-weight="700"
@@ -185,8 +212,10 @@ export function createTextSVG(
     >${escapeXml(line)}</text>
   `).join('') : '';
 
-  // Calculate subtitle Y position (below last headline line + offset)
-  const subtitleY = baseY + (headlineLines.length * lineHeight) + SUBTITLE_Y_OFFSET;
+  // Calculate subtitle Y position (below last headline line + gap)
+  // This matches the CSS calculation: headlineY + (lineCount * lineHeight) + gap
+  // This gives us the visual TOP position of the subtitle
+  const subtitleTopY = baseY + (headlineLines.length * lineHeight) + subtitleGap;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -205,30 +234,34 @@ export function createTextSVG(
 
   <!-- Subtitle -->
   <text
-    x="${TEXT_X}"
-    y="${subtitleY}"
+    x="${baseX}"
+    y="${subtitleTopY + subtitleAscenderOffset}"
     font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
     font-size="${subtitleFontSize}"
     font-weight="500"
     letter-spacing="${subtitleLetterSpacing}px"
     fill="${subtitleColor}"
-    text-transform="uppercase"
   >${escapeXml(subtitle.toUpperCase())}</text>
 </svg>`;
 }
 
 /**
  * Prepare callout image: resize to square, add rounded corners and white border
+ * Supports zoom and focus point to crop into the image
  */
 export async function prepareCallout(
   buffer: Buffer,
-  style?: CalloutStyleOptions
+  style?: CalloutStyleOptions,
+  zoomOptions?: CalloutZoomOptions
 ): Promise<Buffer> {
   // Use style options or defaults
   const size = style?.size || CALLOUT_WIDTH;
   const borderWidth = style?.borderWidth ?? CALLOUT_BORDER_WIDTH;
   const borderColor = style?.borderColor || CALLOUT_BORDER_COLOR;
   const borderRadius = style?.borderRadius ?? CALLOUT_RADIUS;
+  const zoom = zoomOptions?.zoom ?? 1;
+  const focusX = zoomOptions?.focusX ?? 50;
+  const focusY = zoomOptions?.focusY ?? 50;
 
   const innerWidth = size - (borderWidth * 2);
   const innerHeight = size - (borderWidth * 2);
@@ -247,14 +280,40 @@ export async function prepareCallout(
     </svg>
   `);
 
-  // Resize image to inner dimensions (square 1:1)
-  const resized = await sharp(buffer)
-    .resize(innerWidth, innerHeight, {
-      fit: 'cover',
-      position: 'center'
-    })
-    .ensureAlpha()
-    .toBuffer();
+  // Apply zoom if needed, then resize to inner dimensions
+  let resized: Buffer;
+  if (zoom > 1) {
+    // Get metadata to calculate crop
+    const metadata = await sharp(buffer).metadata();
+    const imgWidth = metadata.width || innerWidth;
+    const imgHeight = metadata.height || innerHeight;
+
+    // Calculate crop region for zoom with focus point
+    const cropSize = Math.round(Math.min(imgWidth, imgHeight) / zoom);
+    const maxLeft = imgWidth - cropSize;
+    const maxTop = imgHeight - cropSize;
+    const left = Math.round((focusX / 100) * maxLeft);
+    const top = Math.round((focusY / 100) * maxTop);
+
+    resized = await sharp(buffer)
+      .extract({
+        left: Math.max(0, left),
+        top: Math.max(0, top),
+        width: Math.min(cropSize, imgWidth - left),
+        height: Math.min(cropSize, imgHeight - top)
+      })
+      .resize(innerWidth, innerHeight, { fit: 'cover' })
+      .ensureAlpha()
+      .toBuffer();
+  } else {
+    resized = await sharp(buffer)
+      .resize(innerWidth, innerHeight, {
+        fit: 'cover',
+        position: 'center'
+      })
+      .ensureAlpha()
+      .toBuffer();
+  }
 
   // Apply the rounded corner mask
   const rounded = await sharp(resized)
@@ -349,53 +408,111 @@ export async function prepareCalloutWithBorder(
 // ============================================================================
 
 /**
+ * Apply zoom to an image by extracting a region and resizing
+ *
+ * IMPORTANT: This must match CSS object-fit:cover + object-position behavior exactly.
+ * When zoom=1 with focusX/Y=50: Sharp's position:'centre' matches CSS object-position:center
+ * When zoom>1: We manually extract a region based on focus point, then resize to cover
+ */
+async function applyZoom(
+  buffer: Buffer,
+  targetWidth: number,
+  targetHeight: number,
+  zoom: number,
+  focusX: number = 50,
+  focusY: number = 50
+): Promise<Buffer> {
+  // Get image metadata first
+  const metadata = await sharp(buffer).metadata();
+  const imgWidth = metadata.width || targetWidth;
+  const imgHeight = metadata.height || targetHeight;
+
+  if (zoom <= 1) {
+    // No zoom - use Sharp's built-in cover with center position
+    // Sharp's 'centre' position should match CSS object-position: 50% 50%
+    return sharp(buffer)
+      .resize(targetWidth, targetHeight, {
+        fit: 'cover',
+        position: 'centre'  // Use 'centre' (British spelling) for Sharp
+      })
+      .toBuffer();
+  }
+
+  // For zoom > 1: manually calculate crop region
+  // This simulates zooming into a specific area of the image
+
+  // Calculate how much of the original image we want to show (1/zoom)
+  const cropWidth = Math.round(imgWidth / zoom);
+  const cropHeight = Math.round(imgHeight / zoom);
+
+  // Calculate crop position based on focus point (0-100 maps to available range)
+  const maxLeft = Math.max(0, imgWidth - cropWidth);
+  const maxTop = Math.max(0, imgHeight - cropHeight);
+  const left = Math.round((focusX / 100) * maxLeft);
+  const top = Math.round((focusY / 100) * maxTop);
+
+  // Extract the zoomed region and resize to target dimensions
+  return sharp(buffer)
+    .extract({
+      left: Math.max(0, Math.min(left, imgWidth - cropWidth)),
+      top: Math.max(0, Math.min(top, imgHeight - cropHeight)),
+      width: cropWidth,
+      height: cropHeight
+    })
+    .resize(targetWidth, targetHeight, { fit: 'cover', position: 'centre' })
+    .toBuffer();
+}
+
+/**
  * Compose the final collage from hero, callouts, and text
  *
  * @param options - Hero image buffer, callout buffers, text content, and style options
  * @returns Buffer containing the final PNG image
  */
 export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
-  const { heroImageBuffer, calloutBuffers, text, textStyle, calloutStyle } = options;
+  const { heroImageBuffer, calloutBuffers, text, heroStyle, textStyle, calloutStyle } = options;
+
+  // DEBUG: Log all received style options
+  console.log('=== SHARP COMPOSE DEBUG ===');
+  console.log('textStyle received:', JSON.stringify(textStyle, null, 2));
+  console.log('calloutStyle received:', JSON.stringify(calloutStyle, null, 2));
+  console.log('heroStyle received:', JSON.stringify(heroStyle, null, 2));
 
   // Get callout style values with defaults
   const calloutSize = calloutStyle?.size || CALLOUT_WIDTH;
   const calloutGap = calloutStyle?.gap ?? CALLOUT_GAP;
-  const calloutPosition = calloutStyle?.position || 'left';
-  const calloutVerticalPosition = calloutStyle?.verticalPosition || 'middle';
 
-  // Calculate callout X position
-  const calloutX = calloutPosition === 'right'
-    ? CANVAS_WIDTH - calloutSize - 48
-    : CALLOUT_X;
+  // Use direct X/Y positioning from style, with fallback defaults
+  const calloutX = calloutStyle?.x ?? CALLOUT_X;
+  const calloutStartY = calloutStyle?.y ?? CALLOUT_START_Y;
 
-  // Calculate callout Y start position based on vertical position
-  let calloutStartY: number;
-  const totalCalloutsHeight = (calloutSize * 3) + (calloutGap * 2);
-  switch (calloutVerticalPosition) {
-    case 'top':
-      calloutStartY = 200;
-      break;
-    case 'bottom':
-      calloutStartY = CANVAS_HEIGHT - totalCalloutsHeight - 100;
-      break;
-    case 'middle':
-    default:
-      calloutStartY = Math.round((CANVAS_HEIGHT - totalCalloutsHeight) / 2) + 200;
-  }
+  console.log('Callout positioning - X:', calloutX, 'StartY:', calloutStartY, 'Size:', calloutSize, 'Gap:', calloutGap);
 
-  // 1. Resize hero image to fill the entire canvas
-  const heroResized = await sharp(heroImageBuffer)
-    .resize(CANVAS_WIDTH, CANVAS_HEIGHT, {
-      fit: 'cover',
-      position: 'center'
-    })
-    .toBuffer();
+  // Per-callout zoom settings
+  const detailZoom = calloutStyle?.detail ?? { zoom: 1, focusX: 50, focusY: 50 };
+  const fitZoom = calloutStyle?.fit ?? { zoom: 1, focusX: 50, focusY: 50 };
+  const poseZoom = calloutStyle?.pose ?? { zoom: 1, focusX: 50, focusY: 50 };
 
-  // 2. Prepare all three callout images with rounded corners and styles
+  // Get hero style values with defaults
+  const heroZoom = heroStyle?.zoom ?? 1;
+  const heroFocusX = heroStyle?.focusX ?? 50;
+  const heroFocusY = heroStyle?.focusY ?? 50;
+
+  // 1. Apply zoom and resize hero image to fill the entire canvas
+  const heroResized = await applyZoom(
+    heroImageBuffer,
+    CANVAS_WIDTH,
+    CANVAS_HEIGHT,
+    heroZoom,
+    heroFocusX,
+    heroFocusY
+  );
+
+  // 2. Prepare all three callout images with rounded corners and per-callout zoom
   const [callout1, callout2, callout3] = await Promise.all([
-    prepareCallout(calloutBuffers.detail, calloutStyle),
-    prepareCallout(calloutBuffers.fit, calloutStyle),
-    prepareCallout(calloutBuffers.pose, calloutStyle)
+    prepareCallout(calloutBuffers.detail, calloutStyle, detailZoom),
+    prepareCallout(calloutBuffers.fit, calloutStyle, fitZoom),
+    prepareCallout(calloutBuffers.pose, calloutStyle, poseZoom)
   ]);
 
   // 3. Create text overlay as SVG buffer with styles
@@ -403,9 +520,11 @@ export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
   const textOverlayBuffer = Buffer.from(textOverlaySVG);
 
   // 4. Calculate callout Y positions
-  const callout1Y = calloutStartY;
-  const callout2Y = calloutStartY + calloutSize + calloutGap;
-  const callout3Y = calloutStartY + (calloutSize + calloutGap) * 2;
+  // Ensure all positions are integers (Sharp requires integer values for composite)
+  const callout1Y = Math.round(calloutStartY);
+  const callout2Y = Math.round(calloutStartY + calloutSize + calloutGap);
+  const callout3Y = Math.round(calloutStartY + (calloutSize + calloutGap) * 2);
+  const calloutXInt = Math.round(calloutX);
 
   // 5. Composite all layers onto the hero background
   const composite = await sharp(heroResized)
@@ -420,19 +539,19 @@ export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
       {
         input: callout1,
         top: callout1Y,
-        left: calloutX
+        left: calloutXInt
       },
       // Callout 2 - Fit shot
       {
         input: callout2,
         top: callout2Y,
-        left: calloutX
+        left: calloutXInt
       },
       // Callout 3 - Pose shot
       {
         input: callout3,
         top: callout3Y,
-        left: calloutX
+        left: calloutXInt
       }
     ])
     .png({ quality: 100, compressionLevel: 6 })

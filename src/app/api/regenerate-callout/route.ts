@@ -7,9 +7,16 @@ import { PROMPTS } from '@/lib/prompts';
 import type { CalloutType } from '@/types';
 
 interface RegenerateCalloutRequest {
-  calloutType: CalloutType;
+  // Legacy: callout type (for backward compatibility)
+  calloutType?: CalloutType;
+  // New: slot-based with custom prompts
+  slotIndex?: number;          // 0, 1, or 2
+  promptText?: string;         // Custom prompt to use
+  promptName?: string;         // For tracking (e.g., "Detail Shot")
+  // Required fields
   productImageUrl: string;
   heroImageUrl: string;
+  // Legacy: generic custom prompt (for backward compatibility)
   customPrompt?: string;
 }
 
@@ -17,6 +24,8 @@ interface RegenerateCalloutResponse {
   success: boolean;
   data?: {
     type: CalloutType;
+    slotIndex?: number;        // Included when using slot-based API
+    promptName?: string;       // Included when using slot-based API
     imageUrl: string;
     imageId: string;
     promptUsed: string;
@@ -36,31 +45,51 @@ export async function POST(request: NextRequest): Promise<NextResponse<Regenerat
     // Parse request body
     const body: RegenerateCalloutRequest = await request.json();
 
-    // Validate required fields
-    if (!body.calloutType) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INVALID_IMAGE',
-            message: 'calloutType is required (detail, fit, or pose)',
-          },
-        },
-        { status: 400 }
-      );
-    }
+    // Determine if using new slot-based API or legacy type-based API
+    const useSlotBased = body.slotIndex !== undefined || body.promptText !== undefined;
 
-    if (!['detail', 'fit', 'pose'].includes(body.calloutType)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'INVALID_IMAGE',
-            message: 'calloutType must be one of: detail, fit, pose',
+    // Validate required fields
+    if (!useSlotBased) {
+      // Legacy validation: require calloutType
+      if (!body.calloutType) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'Either calloutType (legacy) or slotIndex (new) is required',
+            },
           },
-        },
-        { status: 400 }
-      );
+          { status: 400 }
+        );
+      }
+
+      if (!['detail', 'fit', 'pose'].includes(body.calloutType)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'calloutType must be one of: detail, fit, pose',
+            },
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      // New slot-based validation
+      if (body.slotIndex === undefined || body.slotIndex < 0 || body.slotIndex > 2) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'slotIndex must be 0, 1, or 2',
+            },
+          },
+          { status: 400 }
+        );
+      }
     }
 
     if (!body.productImageUrl) {
@@ -108,25 +137,33 @@ export async function POST(request: NextRequest): Promise<NextResponse<Regenerat
       );
     }
 
-    // Build the prompt
+    // Build the prompt (JSON format for 90s/2000s flash aesthetic)
     let prompt: string;
-    const productType = 'hoodie'; // Default for MVP
-    const productColor = 'the shown'; // Let AI detect from image
 
-    if (body.customPrompt) {
+    if (useSlotBased && body.promptText) {
+      // New format: use custom prompt from promptText
+      prompt = body.promptText;
+    } else if (body.customPrompt) {
+      // Legacy: use generic custom prompt
       prompt = body.customPrompt;
-    } else {
+    } else if (body.calloutType) {
+      // Legacy: use default JSON prompts based on calloutType
       switch (body.calloutType) {
         case 'detail':
-          prompt = PROMPTS.calloutDetail(productColor, productType);
+          prompt = PROMPTS.calloutDetail();
           break;
         case 'fit':
-          prompt = PROMPTS.calloutFit(productColor, productType);
+          prompt = PROMPTS.calloutFit();
           break;
         case 'pose':
-          prompt = PROMPTS.calloutPose(productColor, productType);
+          prompt = PROMPTS.calloutPose();
           break;
+        default:
+          prompt = PROMPTS.calloutDetail();
       }
+    } else {
+      // Fallback: use detail prompt
+      prompt = PROMPTS.calloutDetail();
     }
 
     // Add subject consistency instruction
@@ -194,7 +231,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Regenerat
     // Save the generated image
     const imageId = generateImageId();
     const extension = generatedImage.mimeType.split('/')[1] || 'png';
-    const filename = `callout_${body.calloutType}_${imageId}.${extension}`;
+    // Use slot-based filename if using new API, otherwise use type-based
+    const filenamePrefix = useSlotBased ? `callout_slot${body.slotIndex}` : `callout_${body.calloutType}`;
+    const filename = `${filenamePrefix}_${imageId}.${extension}`;
     const filepath = path.join(uploadsDir, filename);
 
     const imageBuffer = Buffer.from(generatedImage.imageData, 'base64');
@@ -203,15 +242,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<Regenerat
     const imageUrl = `/uploads/${filename}`;
     const generationTime = Date.now() - startTime;
 
+    // Build response data
+    const responseData: RegenerateCalloutResponse['data'] = {
+      type: body.calloutType || 'detail', // Default to 'detail' for slot-based
+      imageUrl,
+      imageId,
+      promptUsed: prompt,
+      generationTime,
+    };
+
+    // Include slot information if using slot-based API
+    if (useSlotBased) {
+      responseData.slotIndex = body.slotIndex;
+      if (body.promptName) {
+        responseData.promptName = body.promptName;
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: {
-        type: body.calloutType,
-        imageUrl,
-        imageId,
-        promptUsed: prompt,
-        generationTime,
-      },
+      data: responseData,
     });
   } catch (error) {
     console.error('Regenerate callout error:', error);

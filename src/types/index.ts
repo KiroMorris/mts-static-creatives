@@ -1,8 +1,24 @@
 // Types for Apparel Creative Generator
 
-export type Step = 1 | 2 | 3 | 4 | 5 | 6; // Added step 2 for style settings
+export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7; // 7 steps: Upload, Model/Scene, Hero, Callouts, Text, Layout, Export
 
 export type CalloutType = 'detail' | 'fit' | 'pose';
+
+// ============================================================================
+// Callout Prompt Types (Prompt Control Feature)
+// ============================================================================
+
+// Callout prompt definition
+export interface CalloutPrompt {
+  id: string;                    // Unique identifier
+  name: string;                  // Display name (e.g., "Detail Shot", "Fit Shot")
+  promptText: string;            // The actual prompt template
+  isBuiltIn: boolean;            // true for default prompts, false for user-created
+  createdAt?: number;            // Timestamp for user-created prompts
+}
+
+// Slot types for callout images
+export type CalloutSlot = 'slot0' | 'slot1' | 'slot2';
 
 export interface CalloutImages {
   detail: string | null;
@@ -28,6 +44,16 @@ export interface ModelSceneStyle {
   setting: 'studio' | 'outdoor' | 'urban' | 'home' | 'minimalist';
   mood: 'casual' | 'energetic' | 'elegant' | 'edgy' | 'cozy' | 'professional';
   lighting: 'natural' | 'studio' | 'golden-hour' | 'dramatic' | 'soft';
+  // Hero template selection (90s/2000s flash aesthetic)
+  selectedHeroTemplate: string | null; // Template ID from prompt-templates.ts, null = use dropdowns
+  customPromptAddition: string; // Additional custom prompt text to append
+}
+
+// Hero Style
+export interface HeroStyle {
+  zoom: number;      // Zoom level (1.0 = normal, 2.0 = 2x zoom)
+  focusX: number;    // Horizontal focus point (0-100, 50 = center)
+  focusY: number;    // Vertical focus point (0-100, 50 = center)
 }
 
 // Text Style
@@ -35,10 +61,19 @@ export interface TextStyle {
   headlineFontSize: number;
   headlineColor: string;
   headlineShadow: boolean;
-  headlinePosition: 'top' | 'middle' | 'bottom';
+  headlineX: number;        // X position (0-1080)
+  headlineY: number;        // Y position (0-1920)
   subtitleFontSize: number;
   subtitleColor: string;
   subtitleLetterSpacing: number;
+  subtitleGap: number;      // Gap between headline and subtitle
+}
+
+// Individual callout zoom/focus settings
+export interface CalloutZoomSettings {
+  zoom: number;    // Zoom level (1.0 = normal, 2.0 = 2x zoom)
+  focusX: number;  // Horizontal focus point (0-100, 50 = center)
+  focusY: number;  // Vertical focus point (0-100, 50 = center)
 }
 
 // Callout Style
@@ -48,13 +83,18 @@ export interface CalloutStyle {
   borderColor: string;
   borderRadius: number;
   gap: number;
-  position: 'left' | 'right';
-  verticalPosition: 'top' | 'middle' | 'bottom';
+  x: number;    // X position (0-1080)
+  y: number;    // Y position for first callout (0-1920)
+  // Per-callout zoom and focus settings
+  detail: CalloutZoomSettings;
+  fit: CalloutZoomSettings;
+  pose: CalloutZoomSettings;
 }
 
 // Combined Style Settings
 export interface StyleSettings {
   modelScene: ModelSceneStyle;
+  hero: HeroStyle;
   text: TextStyle;
   callout: CalloutStyle;
 }
@@ -69,15 +109,24 @@ export const DEFAULT_STYLE_SETTINGS: StyleSettings = {
     setting: 'home',
     mood: 'cozy',
     lighting: 'natural',
+    selectedHeroTemplate: null, // null = use dropdown settings, or template ID
+    customPromptAddition: '', // Additional custom text to append to prompt
+  },
+  hero: {
+    zoom: 1.0,
+    focusX: 50,
+    focusY: 50,
   },
   text: {
     headlineFontSize: 72,
     headlineColor: '#FFFFFF',
     headlineShadow: true,
-    headlinePosition: 'middle',
+    headlineX: 48,
+    headlineY: 820,
     subtitleFontSize: 18,
     subtitleColor: 'rgba(255, 255, 255, 0.9)',
     subtitleLetterSpacing: 3,
+    subtitleGap: 20,
   },
   callout: {
     size: 200,
@@ -85,8 +134,11 @@ export const DEFAULT_STYLE_SETTINGS: StyleSettings = {
     borderColor: '#FFFFFF',
     borderRadius: 8,
     gap: 16,
-    position: 'left',
-    verticalPosition: 'middle',
+    x: 48,
+    y: 760,
+    detail: { zoom: 1.0, focusX: 50, focusY: 50 },
+    fit: { zoom: 1.0, focusX: 50, focusY: 50 },
+    pose: { zoom: 1.0, focusX: 50, focusY: 50 },
   },
 };
 
@@ -122,6 +174,7 @@ export interface HeroGenerationResponse {
     heroImageId: string;
     promptUsed: string;
     generationTime: number;
+    generatedPrompt?: string;  // The auto-generated prompt (before any customization)
   };
   error?: ApiError;
 }
@@ -171,6 +224,17 @@ export interface CreativeState {
   heroPrompt: string;
   calloutImages: CalloutImages;
 
+  // Hero prompt control
+  heroGeneratedPrompt: string;           // The auto-generated prompt (read-only display)
+  heroCustomPrompt: string;              // User-edited prompt
+  useCustomHeroPrompt: boolean;          // Toggle between auto/custom
+
+  // Callout prompts management
+  calloutPrompts: CalloutPrompt[];       // All available prompts (built-in + custom)
+
+  // Callout selection for generation (array of 3 promptIds for slots 0,1,2)
+  selectedCallouts: [string, string, string];
+
   // Text content
   headline: string;
   subtitle: string;
@@ -192,6 +256,7 @@ export interface CreativeActions {
   setProductImage: (url: string, file: File) => void;
   setStyleSettings: (settings: Partial<StyleSettings>) => void;
   setModelSceneStyle: (style: Partial<ModelSceneStyle>) => void;
+  setHeroStyle: (style: Partial<HeroStyle>) => void;
   setTextStyle: (style: Partial<TextStyle>) => void;
   setCalloutStyle: (style: Partial<CalloutStyle>) => void;
   setHeroImage: (url: string) => void;
@@ -204,6 +269,20 @@ export interface CreativeActions {
   prevStep: () => void;
   goToStep: (step: Step) => void;
   reset: () => void;
+
+  // Hero prompt control actions
+  setHeroGeneratedPrompt: (prompt: string) => void;
+  setHeroCustomPrompt: (prompt: string) => void;
+  setUseCustomHeroPrompt: (use: boolean) => void;
+
+  // Callout prompt management actions
+  addCalloutPrompt: (prompt: Omit<CalloutPrompt, 'id' | 'createdAt'>) => void;
+  updateCalloutPrompt: (id: string, updates: Partial<CalloutPrompt>) => void;
+  deleteCalloutPrompt: (id: string) => void;
+
+  // Callout selection actions
+  setSelectedCallout: (slotIndex: 0 | 1 | 2, promptId: string) => void;
+  setAllSelectedCallouts: (promptIds: [string, string, string]) => void;
 }
 
 export type CreativeStore = CreativeState & CreativeActions;

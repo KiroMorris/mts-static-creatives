@@ -116,3 +116,71 @@ body {
     background-color: #27272a;
   }
 }
+
+/* ==============================================
+   LivePreview Component Styles
+   ============================================== */
+
+/* Preview container with aspect ratio preservation */
+.preview-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: #18181b; /* zinc-900 fallback */
+}
+
+/* Inner scaled content wrapper */
+.preview-canvas-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1080px;
+  height: 1920px;
+  transform-origin: top left;
+  /* transform: scale(var(--preview-scale)); - set dynamically */
+}
+
+/* Text overlay layer */
+.preview-text-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+/* Callout container */
+.preview-callout-stack {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual callout */
+.preview-callout {
+  flex-shrink: 0;
+  overflow: hidden;
+  object-fit: cover;
+}
+
+/* ==============================================
+   LivePreview Responsive Breakpoints
+   ============================================== */
+
+/* Mobile: preview stacked above controls */
+@media (max-width: 1023px) {
+  .preview-canvas {
+    max-width: 280px;
+    margin: 0 auto 2rem;
+  }
+}
+
+/* Desktop: side by side */
+@media (min-width: 1024px) {
+  .preview-canvas {
+    max-width: 340px;
+  }
+}

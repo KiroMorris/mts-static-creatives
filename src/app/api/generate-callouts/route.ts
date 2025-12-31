@@ -6,34 +6,47 @@ import { generateImageWithReferences, imageUrlToBase64, generateImageId } from '
 import { PROMPTS } from '@/lib/prompts';
 import type { CalloutsGenerationResponse, CalloutImage, CalloutType } from '@/types';
 
+// Configuration for a single callout slot (new format)
+interface CalloutConfig {
+  slotIndex: number;           // 0, 1, or 2
+  promptText: string;          // The full prompt to use
+  promptName: string;          // For logging/tracking (e.g., "Detail Shot")
+}
+
 interface GenerateCalloutsRequest {
   productImageUrl: string;
   heroImageUrl: string;
   heroImageId: string;
+  // Legacy: array of callout types (for backward compatibility)
   types?: CalloutType[];
+  // New: array of callout configurations with custom prompts
+  calloutConfigs?: CalloutConfig[];
 }
 
-// Generate a single callout image
+// Response type for slot-based callout (extended from CalloutImage)
+interface SlotCalloutImage extends CalloutImage {
+  slotIndex?: number;
+  promptName?: string;
+}
+
+// Generate a single callout image (legacy type-based)
 async function generateCallout(
   type: CalloutType,
   productImage: { data: string; mimeType: string },
   heroImage: { data: string; mimeType: string },
   uploadsDir: string
 ): Promise<CalloutImage> {
-  // Get the appropriate prompt for this callout type
-  const productType = 'hoodie'; // Default for MVP
-  const productColor = 'the shown'; // Let AI detect from image
-
+  // Get the appropriate JSON prompt for this callout type
   let prompt: string;
   switch (type) {
     case 'detail':
-      prompt = PROMPTS.calloutDetail(productColor, productType);
+      prompt = PROMPTS.calloutDetail();
       break;
     case 'fit':
-      prompt = PROMPTS.calloutFit(productColor, productType);
+      prompt = PROMPTS.calloutFit();
       break;
     case 'pose':
-      prompt = PROMPTS.calloutPose(productColor, productType);
+      prompt = PROMPTS.calloutPose();
       break;
     default:
       throw new Error(`Invalid callout type: ${type}`);
@@ -56,6 +69,41 @@ async function generateCallout(
 
   return {
     type,
+    imageUrl: `/uploads/${filename}`,
+    imageId,
+    promptUsed: prompt,
+  };
+}
+
+// Generate a single callout image from custom config (new slot-based)
+async function generateCalloutFromConfig(
+  config: CalloutConfig,
+  productImage: { data: string; mimeType: string },
+  heroImage: { data: string; mimeType: string },
+  uploadsDir: string
+): Promise<SlotCalloutImage> {
+  // Use the custom prompt text
+  let prompt = config.promptText;
+
+  // Add subject consistency instruction
+  prompt += '\n\nIMPORTANT: Use the EXACT SAME model from the reference hero image for subject consistency.';
+
+  // Generate with both product and hero images as references for consistency
+  const generatedImage = await generateImageWithReferences(prompt, [productImage, heroImage]);
+
+  // Save the generated image
+  const imageId = generateImageId();
+  const extension = generatedImage.mimeType.split('/')[1] || 'png';
+  const filename = `callout_slot${config.slotIndex}_${imageId}.${extension}`;
+  const filepath = path.join(uploadsDir, filename);
+
+  const imageBuffer = Buffer.from(generatedImage.imageData, 'base64');
+  await writeFile(filepath, imageBuffer);
+
+  return {
+    type: 'detail', // Default type for backward compatibility
+    slotIndex: config.slotIndex,
+    promptName: config.promptName,
     imageUrl: `/uploads/${filename}`,
     imageId,
     promptUsed: prompt,
@@ -96,9 +144,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<CalloutsG
       );
     }
 
-    // Determine which callout types to generate
-    const typesToGenerate: CalloutType[] = body.types || ['detail', 'fit', 'pose'];
-
     // Convert images to base64 for Gemini
     let productImage;
     let heroImage;
@@ -127,13 +172,26 @@ export async function POST(request: NextRequest): Promise<NextResponse<CalloutsG
     }
 
     // Generate callouts sequentially to avoid rate limiting
-    let callouts: CalloutImage[] = [];
+    let callouts: SlotCalloutImage[] = [];
     try {
-      for (const type of typesToGenerate) {
-        console.log(`Generating ${type} callout...`);
-        const callout = await generateCallout(type, productImage, heroImage, uploadsDir);
-        callouts.push(callout);
-        console.log(`${type} callout generated successfully`);
+      // Check if using new calloutConfigs format or legacy types format
+      if (body.calloutConfigs && body.calloutConfigs.length > 0) {
+        // New format: use custom prompts from calloutConfigs
+        for (const config of body.calloutConfigs) {
+          console.log(`Generating callout for slot ${config.slotIndex} (${config.promptName})...`);
+          const callout = await generateCalloutFromConfig(config, productImage, heroImage, uploadsDir);
+          callouts.push(callout);
+          console.log(`Slot ${config.slotIndex} (${config.promptName}) callout generated successfully`);
+        }
+      } else {
+        // Legacy format: use types array (backward compatibility)
+        const typesToGenerate: CalloutType[] = body.types || ['detail', 'fit', 'pose'];
+        for (const type of typesToGenerate) {
+          console.log(`Generating ${type} callout...`);
+          const callout = await generateCallout(type, productImage, heroImage, uploadsDir);
+          callouts.push(callout);
+          console.log(`${type} callout generated successfully`);
+        }
       }
     } catch (error) {
       console.error('Callout generation error:', error);

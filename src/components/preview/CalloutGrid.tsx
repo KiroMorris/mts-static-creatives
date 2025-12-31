@@ -1,17 +1,22 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { CalloutSelector, CalloutPromptManager } from '@/components/prompt';
 import { useCreativeStore } from '@/store/useCreativeStore';
 import { API } from '@/lib/constants';
 import type { CalloutType } from '@/types';
 
-const CALLOUT_TYPES: { type: CalloutType; label: string; description: string }[] = [
-  { type: 'detail', label: 'Detail/Texture', description: 'Close-up fabric shot' },
-  { type: 'fit', label: 'Fit Shot', description: 'Cropped body view' },
-  { type: 'pose', label: 'Alt Pose', description: 'Alternative angle' },
+// Map slot index to callout type for legacy compatibility
+const SLOT_TO_TYPE: CalloutType[] = ['detail', 'fit', 'pose'];
+
+// Slot display configuration
+const SLOT_CONFIG = [
+  { label: 'Callout 1', description: 'First callout image' },
+  { label: 'Callout 2', description: 'Second callout image' },
+  { label: 'Callout 3', description: 'Third callout image' },
 ];
 
 export function CalloutGrid() {
@@ -26,11 +31,23 @@ export function CalloutGrid() {
     error,
     nextStep,
     prevStep,
+    // New prompt control state
+    calloutPrompts,
+    selectedCallouts,
+    setSelectedCallout,
+    addCalloutPrompt,
+    updateCalloutPrompt,
+    deleteCalloutPrompt,
   } = useCreativeStore();
 
-  const [regeneratingType, setRegeneratingType] = useState<CalloutType | null>(null);
+  const [regeneratingSlot, setRegeneratingSlot] = useState<number | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const hasInitiatedGeneration = useRef(false);
+  const [showPromptManager, setShowPromptManager] = useState(false);
+  const [showPromptSelector, setShowPromptSelector] = useState(true);
+  const hasGeneratedOnce = useRef(false);
+
+  // Get prompt by ID
+  const getPromptById = (id: string) => calloutPrompts.find(p => p.id === id);
 
   const generateAllCallouts = async () => {
     if (!productImage || !heroImage) return;
@@ -43,6 +60,16 @@ export function CalloutGrid() {
       setGenerationProgress((prev) => Math.min(prev + 3, 90));
     }, 300);
 
+    // Build callout configs from selected prompts
+    const calloutConfigs = selectedCallouts.map((promptId, slotIndex) => {
+      const prompt = getPromptById(promptId);
+      return {
+        slotIndex,
+        promptText: prompt?.promptText || '',
+        promptName: prompt?.name || `Callout ${slotIndex + 1}`,
+      };
+    });
+
     try {
       const response = await fetch(API.generateCallouts, {
         method: 'POST',
@@ -50,6 +77,7 @@ export function CalloutGrid() {
         body: JSON.stringify({
           productImageUrl: productImage,
           heroImageUrl: heroImage,
+          calloutConfigs, // Use new slot-based API
         }),
       });
 
@@ -63,10 +91,18 @@ export function CalloutGrid() {
 
       const data = await response.json();
 
-      // Set each callout image
-      data.data.callouts.forEach((callout: { type: CalloutType; imageUrl: string }) => {
-        setCalloutImage(callout.type, callout.imageUrl);
+      // Set each callout image by slot
+      data.data.callouts.forEach((callout: { slotIndex?: number; type?: CalloutType; imageUrl: string }) => {
+        // Support both slot-based and legacy type-based response
+        if (typeof callout.slotIndex === 'number') {
+          const type = SLOT_TO_TYPE[callout.slotIndex];
+          setCalloutImage(type, callout.imageUrl);
+        } else if (callout.type) {
+          setCalloutImage(callout.type, callout.imageUrl);
+        }
       });
+
+      hasGeneratedOnce.current = true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate callouts';
       setError(message);
@@ -76,11 +112,15 @@ export function CalloutGrid() {
     }
   };
 
-  const regenerateCallout = async (type: CalloutType) => {
+  const regenerateCallout = async (slotIndex: number) => {
     if (!productImage || !heroImage) return;
 
-    setRegeneratingType(type);
+    setRegeneratingSlot(slotIndex);
     setError(null);
+
+    const promptId = selectedCallouts[slotIndex];
+    const prompt = getPromptById(promptId);
+    const type = SLOT_TO_TYPE[slotIndex];
 
     try {
       const response = await fetch(API.regenerateCallout, {
@@ -89,7 +129,9 @@ export function CalloutGrid() {
         body: JSON.stringify({
           productImageUrl: productImage,
           heroImageUrl: heroImage,
-          calloutType: type,
+          slotIndex,
+          promptText: prompt?.promptText || '',
+          promptName: prompt?.name || `Callout ${slotIndex + 1}`,
         }),
       });
 
@@ -104,18 +146,9 @@ export function CalloutGrid() {
       const message = err instanceof Error ? err.message : 'Failed to regenerate callout';
       setError(message);
     } finally {
-      setRegeneratingType(null);
+      setRegeneratingSlot(null);
     }
   };
-
-  // Auto-generate on mount if no callouts (with guard to prevent double-call)
-  useEffect(() => {
-    const hasAnyCallout = calloutImages.detail || calloutImages.fit || calloutImages.pose;
-    if (productImage && heroImage && !hasAnyCallout && !isGeneratingCallouts && !hasInitiatedGeneration.current) {
-      hasInitiatedGeneration.current = true;
-      generateAllCallouts();
-    }
-  }, [productImage, heroImage, calloutImages, isGeneratingCallouts]);
 
   const allCalloutsGenerated =
     calloutImages.detail && calloutImages.fit && calloutImages.pose;
@@ -133,9 +166,43 @@ export function CalloutGrid() {
           Generate Detail Shots
         </h2>
         <p className="text-zinc-600 dark:text-zinc-400">
-          Create 3 complementary callout images to complete your creative
+          Select prompts and generate 3 complementary callout images
         </p>
       </div>
+
+      {/* Prompt Selector - Collapsible */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowPromptSelector(!showPromptSelector)}
+          className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors mb-4"
+        >
+          <ChevronIcon className={`w-4 h-4 transition-transform ${showPromptSelector ? 'rotate-180' : ''}`} />
+          {showPromptSelector ? 'Hide Prompt Selection' : 'Show Prompt Selection'}
+        </button>
+
+        {showPromptSelector && (
+          <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+            <CalloutSelector
+              availablePrompts={calloutPrompts}
+              selectedPromptIds={selectedCallouts}
+              onSelectionChange={setSelectedCallout}
+              onManagePrompts={() => setShowPromptManager(true)}
+              disabled={isGeneratingCallouts}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Prompt Manager Modal */}
+      {showPromptManager && (
+        <CalloutPromptManager
+          prompts={calloutPrompts}
+          onAdd={addCalloutPrompt}
+          onUpdate={updateCalloutPrompt}
+          onDelete={deleteCalloutPrompt}
+          onClose={() => setShowPromptManager(false)}
+        />
+      )}
 
       {/* Generation in progress */}
       {isGeneratingCallouts && (
@@ -149,17 +216,26 @@ export function CalloutGrid() {
         </div>
       )}
 
-      {/* Callout Grid */}
+      {/* Callout Grid - Using slots */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {CALLOUT_TYPES.map(({ type, label, description }) => {
+        {SLOT_CONFIG.map(({ label, description }, slotIndex) => {
+          const type = SLOT_TO_TYPE[slotIndex];
           const imageUrl = calloutImages[type];
-          const isRegenerating = regeneratingType === type;
+          const isRegenerating = regeneratingSlot === slotIndex;
+          const selectedPrompt = getPromptById(selectedCallouts[slotIndex]);
 
           return (
-            <div key={type} className="flex flex-col">
-              <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                {label}
-              </h3>
+            <div key={slotIndex} className="flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {label}
+                </h3>
+                {selectedPrompt && (
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[120px]">
+                    {selectedPrompt.name}
+                  </span>
+                )}
+              </div>
               <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-md">
                 {isGeneratingCallouts && !imageUrl ? (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -189,7 +265,7 @@ export function CalloutGrid() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => regenerateCallout(type)}
+                      onClick={() => regenerateCallout(slotIndex)}
                       disabled={isGeneratingCallouts}
                     >
                       <RefreshIcon className="w-4 h-4 mr-1" />
@@ -204,7 +280,7 @@ export function CalloutGrid() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => regenerateCallout(type)}
+                  onClick={() => regenerateCallout(slotIndex)}
                   disabled={isRegenerating || isGeneratingCallouts}
                   className="mt-2 sm:hidden"
                 >
@@ -237,11 +313,11 @@ export function CalloutGrid() {
           isLoading={isGeneratingCallouts}
         >
           <RefreshIcon className="w-4 h-4 mr-1" />
-          Regenerate All
+          {hasGeneratedOnce.current ? 'Regenerate All' : 'Generate All'}
         </Button>
         <Button
           onClick={handleApprove}
-          disabled={!allCalloutsGenerated || isGeneratingCallouts || !!regeneratingType}
+          disabled={!allCalloutsGenerated || isGeneratingCallouts || regeneratingSlot !== null}
         >
           <CheckIcon className="w-4 h-4 mr-1" />
           Approve All & Continue
@@ -263,6 +339,14 @@ function RefreshIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   );
 }

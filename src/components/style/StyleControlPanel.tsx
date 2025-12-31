@@ -2,115 +2,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { LivePreview } from '@/components/preview/LivePreview';
 import { useCreativeStore } from '@/store/useCreativeStore';
-import type { ModelSceneStyle, TextStyle, CalloutStyle } from '@/types';
-
-// ============================================================================
-// Option Definitions
-// ============================================================================
-
-const MODEL_GENDER_OPTIONS: { value: ModelSceneStyle['modelGender']; label: string }[] = [
-  { value: 'female', label: 'Female' },
-  { value: 'male', label: 'Male' },
-];
-
-const MODEL_AGE_OPTIONS: { value: ModelSceneStyle['modelAge']; label: string }[] = [
-  { value: 'young', label: 'Young (18-25)' },
-  { value: 'middle', label: 'Middle (26-40)' },
-  { value: 'mature', label: 'Mature (40+)' },
-];
-
-const MODEL_ETHNICITY_OPTIONS: { value: ModelSceneStyle['modelEthnicity']; label: string }[] = [
-  { value: 'any', label: 'Any' },
-  { value: 'caucasian', label: 'Caucasian' },
-  { value: 'african', label: 'African' },
-  { value: 'asian', label: 'Asian' },
-  { value: 'hispanic', label: 'Hispanic' },
-  { value: 'middle-eastern', label: 'Middle Eastern' },
-  { value: 'south-asian', label: 'South Asian' },
-];
-
-const POSE_OPTIONS: { value: ModelSceneStyle['pose']; label: string }[] = [
-  { value: 'relaxed', label: 'Relaxed' },
-  { value: 'dynamic', label: 'Dynamic' },
-  { value: 'elegant', label: 'Elegant' },
-  { value: 'casual', label: 'Casual' },
-  { value: 'confident', label: 'Confident' },
-];
-
-const SETTING_OPTIONS: { value: ModelSceneStyle['setting']; label: string }[] = [
-  { value: 'studio', label: 'Studio' },
-  { value: 'outdoor', label: 'Outdoor' },
-  { value: 'urban', label: 'Urban' },
-  { value: 'home', label: 'Home/Cozy' },
-  { value: 'minimalist', label: 'Minimalist' },
-];
-
-const MOOD_OPTIONS: { value: ModelSceneStyle['mood']; label: string }[] = [
-  { value: 'casual', label: 'Casual' },
-  { value: 'energetic', label: 'Energetic' },
-  { value: 'elegant', label: 'Elegant' },
-  { value: 'edgy', label: 'Edgy' },
-  { value: 'cozy', label: 'Cozy' },
-  { value: 'professional', label: 'Professional' },
-];
-
-const LIGHTING_OPTIONS: { value: ModelSceneStyle['lighting']; label: string }[] = [
-  { value: 'natural', label: 'Natural' },
-  { value: 'studio', label: 'Studio' },
-  { value: 'golden-hour', label: 'Golden Hour' },
-  { value: 'dramatic', label: 'Dramatic' },
-  { value: 'soft', label: 'Soft' },
-];
-
-const POSITION_OPTIONS: { value: CalloutStyle['position']; label: string }[] = [
-  { value: 'left', label: 'Left' },
-  { value: 'right', label: 'Right' },
-];
-
-const VERTICAL_POSITION_OPTIONS: { value: CalloutStyle['verticalPosition']; label: string }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'middle', label: 'Middle' },
-  { value: 'bottom', label: 'Bottom' },
-];
-
-const HEADLINE_POSITION_OPTIONS: { value: TextStyle['headlinePosition']; label: string }[] = [
-  { value: 'top', label: 'Top' },
-  { value: 'middle', label: 'Middle' },
-  { value: 'bottom', label: 'Bottom' },
-];
 
 // ============================================================================
 // Sub-Components
 // ============================================================================
-
-interface SelectProps<T extends string> {
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-}
-
-function Select<T extends string>({ label, value, options, onChange }: SelectProps<T>) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-        {label}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 interface SliderProps {
   label: string;
@@ -228,34 +125,55 @@ function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }
 
 export function StyleControlPanel() {
   const {
+    heroImage,
+    calloutImages,
+    headline,
+    subtitle,
     styleSettings,
-    setModelSceneStyle,
+    setHeroStyle,
     setTextStyle,
     setCalloutStyle,
     nextStep,
     prevStep,
   } = useCreativeStore();
 
-  const [activeTab, setActiveTab] = useState<'model' | 'text' | 'callout'>('model');
+  const [activeTab, setActiveTab] = useState<'hero' | 'text' | 'callout'>('hero');
 
-  const { modelScene, text, callout } = styleSettings;
+  const { hero, text, callout } = styleSettings;
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-6xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-          Customize Your Style
+          Customize Layout
         </h2>
         <p className="text-zinc-600 dark:text-zinc-400">
-          Configure the look and feel of your creative
+          Adjust text and callout styling - see changes in real-time
         </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 mb-6">
+      {/* Main content - side by side layout */}
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Preview panel - sticky on desktop */}
+        <div className="w-full lg:w-[340px] lg:sticky lg:top-32 flex-shrink-0 order-1 lg:order-none">
+          <LivePreview
+            heroImage={heroImage}
+            calloutImages={calloutImages}
+            headline={headline || 'Your Headline'}
+            subtitle={subtitle || 'Your Subtitle'}
+            heroStyle={hero}
+            textStyle={text}
+            calloutStyle={callout}
+          />
+        </div>
+
+        {/* Controls panel */}
+        <div className="flex-1 min-w-0 max-w-xl">
+          {/* Tab Navigation */}
+          <div className="flex rounded-lg bg-zinc-100 dark:bg-zinc-800 p-1 mb-6">
         {[
-          { id: 'model' as const, label: 'Model & Scene', icon: <UserIcon /> },
-          { id: 'text' as const, label: 'Text Style', icon: <TextIcon /> },
+          { id: 'hero' as const, label: 'Hero', icon: <ImageIcon /> },
+          { id: 'text' as const, label: 'Text', icon: <TextIcon /> },
           { id: 'callout' as const, label: 'Callouts', icon: <GridIcon /> },
         ].map((tab) => (
           <button
@@ -275,58 +193,37 @@ export function StyleControlPanel() {
 
       {/* Tab Content */}
       <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-6">
-        {activeTab === 'model' && (
+        {activeTab === 'hero' && (
           <div className="space-y-6">
-            <SectionHeader title="Model Appearance" icon={<UserIcon />} />
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Gender"
-                value={modelScene.modelGender}
-                options={MODEL_GENDER_OPTIONS}
-                onChange={(v) => setModelSceneStyle({ modelGender: v })}
+            <SectionHeader title="Hero Image" icon={<ImageIcon />} />
+            <div className="space-y-4">
+              <Slider
+                label="Zoom"
+                value={hero.zoom}
+                min={1}
+                max={2}
+                step={0.1}
+                unit="x"
+                onChange={(v) => setHeroStyle({ zoom: v })}
               />
-              <Select
-                label="Age Range"
-                value={modelScene.modelAge}
-                options={MODEL_AGE_OPTIONS}
-                onChange={(v) => setModelSceneStyle({ modelAge: v })}
+              <Slider
+                label="Focus X (Horizontal)"
+                value={hero.focusX}
+                min={0}
+                max={100}
+                step={5}
+                unit="%"
+                onChange={(v) => setHeroStyle({ focusX: v })}
               />
-              <Select
-                label="Ethnicity"
-                value={modelScene.modelEthnicity}
-                options={MODEL_ETHNICITY_OPTIONS}
-                onChange={(v) => setModelSceneStyle({ modelEthnicity: v })}
+              <Slider
+                label="Focus Y (Vertical)"
+                value={hero.focusY}
+                min={0}
+                max={100}
+                step={5}
+                unit="%"
+                onChange={(v) => setHeroStyle({ focusY: v })}
               />
-              <Select
-                label="Pose"
-                value={modelScene.pose}
-                options={POSE_OPTIONS}
-                onChange={(v) => setModelSceneStyle({ pose: v })}
-              />
-            </div>
-
-            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
-              <SectionHeader title="Scene & Lighting" icon={<SunIcon />} />
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Setting"
-                  value={modelScene.setting}
-                  options={SETTING_OPTIONS}
-                  onChange={(v) => setModelSceneStyle({ setting: v })}
-                />
-                <Select
-                  label="Mood"
-                  value={modelScene.mood}
-                  options={MOOD_OPTIONS}
-                  onChange={(v) => setModelSceneStyle({ mood: v })}
-                />
-                <Select
-                  label="Lighting"
-                  value={modelScene.lighting}
-                  options={LIGHTING_OPTIONS}
-                  onChange={(v) => setModelSceneStyle({ lighting: v })}
-                />
-              </div>
             </div>
           </div>
         )}
@@ -354,12 +251,30 @@ export function StyleControlPanel() {
                 checked={text.headlineShadow}
                 onChange={(v) => setTextStyle({ headlineShadow: v })}
               />
-              <Select
-                label="Vertical Position"
-                value={text.headlinePosition}
-                options={HEADLINE_POSITION_OPTIONS}
-                onChange={(v) => setTextStyle({ headlinePosition: v })}
-              />
+            </div>
+
+            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+              <SectionHeader title="Text Position" icon={<PositionIcon />} />
+              <div className="space-y-4">
+                <Slider
+                  label="Horizontal (X)"
+                  value={text.headlineX}
+                  min={20}
+                  max={600}
+                  step={10}
+                  unit="px"
+                  onChange={(v) => setTextStyle({ headlineX: v })}
+                />
+                <Slider
+                  label="Vertical (Y)"
+                  value={text.headlineY}
+                  min={100}
+                  max={1600}
+                  step={20}
+                  unit="px"
+                  onChange={(v) => setTextStyle({ headlineY: v })}
+                />
+              </div>
             </div>
 
             <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
@@ -387,6 +302,15 @@ export function StyleControlPanel() {
                   step={1}
                   unit="px"
                   onChange={(v) => setTextStyle({ subtitleLetterSpacing: v })}
+                />
+                <Slider
+                  label="Gap from Headline"
+                  value={text.subtitleGap}
+                  min={10}
+                  max={60}
+                  step={5}
+                  unit="px"
+                  onChange={(v) => setTextStyle({ subtitleGap: v })}
                 />
               </div>
             </div>
@@ -441,24 +365,134 @@ export function StyleControlPanel() {
             </div>
 
             <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
-              <SectionHeader title="Position" icon={<GridIcon />} />
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Horizontal"
-                  value={callout.position}
-                  options={POSITION_OPTIONS}
-                  onChange={(v) => setCalloutStyle({ position: v })}
+              <SectionHeader title="Position" icon={<PositionIcon />} />
+              <div className="space-y-4">
+                <Slider
+                  label="Horizontal (X)"
+                  value={callout.x}
+                  min={20}
+                  max={880}
+                  step={10}
+                  unit="px"
+                  onChange={(v) => setCalloutStyle({ x: v })}
                 />
-                <Select
-                  label="Vertical"
-                  value={callout.verticalPosition}
-                  options={VERTICAL_POSITION_OPTIONS}
-                  onChange={(v) => setCalloutStyle({ verticalPosition: v })}
+                <Slider
+                  label="Vertical (Y)"
+                  value={callout.y}
+                  min={100}
+                  max={1400}
+                  step={20}
+                  unit="px"
+                  onChange={(v) => setCalloutStyle({ y: v })}
+                />
+              </div>
+            </div>
+
+            {/* Detail Callout Zoom */}
+            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+              <SectionHeader title="Detail Callout" icon={<ZoomIcon />} />
+              <div className="space-y-4">
+                <Slider
+                  label="Zoom"
+                  value={callout.detail.zoom}
+                  min={1}
+                  max={2}
+                  step={0.1}
+                  unit="x"
+                  onChange={(v) => setCalloutStyle({ detail: { ...callout.detail, zoom: v } })}
+                />
+                <Slider
+                  label="Focus X"
+                  value={callout.detail.focusX}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ detail: { ...callout.detail, focusX: v } })}
+                />
+                <Slider
+                  label="Focus Y"
+                  value={callout.detail.focusY}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ detail: { ...callout.detail, focusY: v } })}
+                />
+              </div>
+            </div>
+
+            {/* Fit Callout Zoom */}
+            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+              <SectionHeader title="Fit Callout" icon={<ZoomIcon />} />
+              <div className="space-y-4">
+                <Slider
+                  label="Zoom"
+                  value={callout.fit.zoom}
+                  min={1}
+                  max={2}
+                  step={0.1}
+                  unit="x"
+                  onChange={(v) => setCalloutStyle({ fit: { ...callout.fit, zoom: v } })}
+                />
+                <Slider
+                  label="Focus X"
+                  value={callout.fit.focusX}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ fit: { ...callout.fit, focusX: v } })}
+                />
+                <Slider
+                  label="Focus Y"
+                  value={callout.fit.focusY}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ fit: { ...callout.fit, focusY: v } })}
+                />
+              </div>
+            </div>
+
+            {/* Pose Callout Zoom */}
+            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+              <SectionHeader title="Pose Callout" icon={<ZoomIcon />} />
+              <div className="space-y-4">
+                <Slider
+                  label="Zoom"
+                  value={callout.pose.zoom}
+                  min={1}
+                  max={2}
+                  step={0.1}
+                  unit="x"
+                  onChange={(v) => setCalloutStyle({ pose: { ...callout.pose, zoom: v } })}
+                />
+                <Slider
+                  label="Focus X"
+                  value={callout.pose.focusX}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ pose: { ...callout.pose, focusX: v } })}
+                />
+                <Slider
+                  label="Focus Y"
+                  value={callout.pose.focusY}
+                  min={0}
+                  max={100}
+                  step={5}
+                  unit="%"
+                  onChange={(v) => setCalloutStyle({ pose: { ...callout.pose, focusY: v } })}
                 />
               </div>
             </div>
           </div>
         )}
+      </div>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -468,7 +502,7 @@ export function StyleControlPanel() {
           Back
         </Button>
         <Button onClick={nextStep}>
-          Continue to Generate
+          Continue to Export
           <ArrowRightIcon className="w-4 h-4 ml-1" />
         </Button>
       </div>
@@ -480,10 +514,10 @@ export function StyleControlPanel() {
 // Icons
 // ============================================================================
 
-function UserIcon({ className = "w-4 h-4" }: { className?: string }) {
+function ImageIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
     </svg>
   );
 }
@@ -504,10 +538,18 @@ function GridIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
-function SunIcon({ className = "w-4 h-4" }: { className?: string }) {
+function PositionIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+    </svg>
+  );
+}
+
+function ZoomIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
     </svg>
   );
 }

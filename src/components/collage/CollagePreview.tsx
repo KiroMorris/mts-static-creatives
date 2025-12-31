@@ -26,7 +26,7 @@ export function CollagePreview() {
 
   const [compositionProgress, setCompositionProgress] = useState(0);
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg'>('png');
-  const hasInitiatedComposition = useRef(false);
+  const [lastComposedStyles, setLastComposedStyles] = useState<string | null>(null);
 
   const composeCollage = async () => {
     if (!heroImage || !calloutImages.detail || !calloutImages.fit || !calloutImages.pose) {
@@ -56,6 +56,7 @@ export function CollagePreview() {
             headline,
             subtitle,
           },
+          heroStyle: styleSettings.hero,
           textStyle: styleSettings.text,
           calloutStyle: styleSettings.callout,
         }),
@@ -71,6 +72,8 @@ export function CollagePreview() {
 
       const data = await response.json();
       setFinalCollage(data.data.collageUrl);
+      // Track what styles were used for this composition
+      setLastComposedStyles(JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to compose collage';
       setError(message);
@@ -80,13 +83,24 @@ export function CollagePreview() {
     }
   };
 
-  // Auto-compose on mount if no collage exists (with guard to prevent double-call)
+  // Auto-compose on mount or when style settings change
   useEffect(() => {
-    if (heroImage && calloutImages.detail && calloutImages.fit && calloutImages.pose && !finalCollage && !isComposing && !hasInitiatedComposition.current) {
-      hasInitiatedComposition.current = true;
+    if (!heroImage || !calloutImages.detail || !calloutImages.fit || !calloutImages.pose || isComposing) {
+      return;
+    }
+
+    const currentStyles = JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout });
+
+    // Compose if: no collage yet OR styles changed since last composition
+    if (!finalCollage || lastComposedStyles !== currentStyles) {
+      console.log('=== TRIGGERING RECOMPOSE ===');
+      console.log('finalCollage exists:', !!finalCollage);
+      console.log('lastComposedStyles:', lastComposedStyles);
+      console.log('currentStyles:', currentStyles);
+      console.log('styles match:', lastComposedStyles === currentStyles);
       composeCollage();
     }
-  }, [heroImage, calloutImages, finalCollage, isComposing]);
+  }, [heroImage, calloutImages, finalCollage, isComposing, styleSettings, lastComposedStyles]);
 
   const handleDownload = async (format: 'png' | 'jpg') => {
     if (!finalCollage) return;

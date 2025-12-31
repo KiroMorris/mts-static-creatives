@@ -28,14 +28,21 @@ interface ComposeCollageRequest {
     headline: string;
     subtitle: string;
   };
+  heroStyle?: {
+    zoom: number;
+    focusX: number;
+    focusY: number;
+  };
   textStyle?: {
     headlineFontSize: number;
     headlineColor: string;
     headlineShadow: boolean;
-    headlinePosition: 'top' | 'middle' | 'bottom';
+    headlineX: number;
+    headlineY: number;
     subtitleFontSize: number;
     subtitleColor: string;
     subtitleLetterSpacing: number;
+    subtitleGap: number;
   };
   calloutStyle?: {
     size: number;
@@ -43,8 +50,9 @@ interface ComposeCollageRequest {
     borderColor: string;
     borderRadius: number;
     gap: number;
-    position: 'left' | 'right';
-    verticalPosition: 'top' | 'middle' | 'bottom';
+    x: number;
+    y: number;
+    zoom: number;
   };
   outputFormat?: 'base64' | 'file';
   fileFormat?: 'png' | 'jpeg' | 'webp';
@@ -197,6 +205,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       heroImageUrl,
       callouts,
       text,
+      heroStyle,
       textStyle,
       calloutStyle,
       outputFormat = 'base64',
@@ -226,6 +235,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       );
     }
 
+    // Debug: Log the style values being used
+    console.log('=== COMPOSE COLLAGE DEBUG ===');
+    console.log('textStyle:', JSON.stringify(textStyle, null, 2));
+    console.log('calloutStyle:', JSON.stringify(calloutStyle, null, 2));
+    console.log('heroStyle:', JSON.stringify(heroStyle, null, 2));
+
     // Compose the collage with styles
     const collageBuffer = await composeCollage({
       heroImageBuffer: heroBuffer,
@@ -238,6 +253,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
         headline: text.headline,
         subtitle: text.subtitle
       },
+      heroStyle,
       textStyle,
       calloutStyle
     });

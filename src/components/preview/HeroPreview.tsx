@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { PromptEditor } from '@/components/prompt';
 import { useCreativeStore } from '@/store/useCreativeStore';
 import { API } from '@/lib/constants';
 
@@ -19,14 +20,60 @@ export function HeroPreview() {
     error,
     nextStep,
     prevStep,
+    // New prompt control state
+    heroGeneratedPrompt,
+    heroCustomPrompt,
+    useCustomHeroPrompt,
+    setHeroGeneratedPrompt,
+    setHeroCustomPrompt,
+    setUseCustomHeroPrompt,
   } = useCreativeStore();
 
   const [showPromptEditor, setShowPromptEditor] = useState(false);
-  const [customPrompt, setCustomPrompt] = useState('');
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [isFetchingPrompt, setIsFetchingPrompt] = useState(false);
   const hasInitiatedGeneration = useRef(false);
+  const hasFetchedPrompt = useRef(false);
 
-  const generateHero = async (prompt?: string) => {
+  // Fetch the auto-generated prompt on mount (preview mode)
+  const fetchPromptPreview = async () => {
+    if (!productImage || hasFetchedPrompt.current) return;
+
+    hasFetchedPrompt.current = true;
+    setIsFetchingPrompt(true);
+
+    try {
+      const response = await fetch(API.generateHero, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productImageUrl: productImage,
+          modelSceneStyle: styleSettings.modelScene,
+          previewPromptOnly: true, // Just get the prompt, don't generate
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data?.generatedPrompt) {
+          setHeroGeneratedPrompt(data.data.generatedPrompt);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch prompt preview:', err);
+    } finally {
+      setIsFetchingPrompt(false);
+    }
+  };
+
+  // Fetch prompt preview on mount
+  useEffect(() => {
+    if (productImage && !heroGeneratedPrompt && !hasFetchedPrompt.current) {
+      fetchPromptPreview();
+    }
+  }, [productImage, heroGeneratedPrompt]);
+
+  const generateHero = async () => {
     if (!productImage) return;
 
     setLoading('isGeneratingHero', true);
@@ -38,13 +85,18 @@ export function HeroPreview() {
       setGenerationProgress((prev) => Math.min(prev + 5, 90));
     }, 500);
 
+    // Determine which prompt to use
+    const promptToUse = useCustomHeroPrompt && heroCustomPrompt
+      ? heroCustomPrompt
+      : undefined; // Let API generate if not using custom
+
     try {
       const response = await fetch(API.generateHero, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productImageUrl: productImage,
-          customPrompt: prompt || customPrompt || undefined,
+          customPrompt: promptToUse,
           modelSceneStyle: styleSettings.modelScene,
         }),
       });
@@ -59,6 +111,11 @@ export function HeroPreview() {
 
       const data = await response.json();
       setHeroImage(data.data.heroImageUrl);
+
+      // Update the generated prompt if returned
+      if (data.data?.generatedPrompt) {
+        setHeroGeneratedPrompt(data.data.generatedPrompt);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate hero image';
       setError(message);
@@ -84,11 +141,6 @@ export function HeroPreview() {
     if (heroImage) {
       nextStep();
     }
-  };
-
-  const handlePromptSubmit = () => {
-    setShowPromptEditor(false);
-    generateHero(customPrompt);
   };
 
   return (
@@ -159,30 +211,30 @@ export function HeroPreview() {
         </div>
       )}
 
-      {/* Prompt Editor Modal */}
-      {showPromptEditor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-              Edit Generation Prompt
-            </h3>
-            <textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Describe the style, setting, or mood you want for the hero image..."
-              className="w-full h-32 px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-500 resize-none"
+      {/* Prompt Editor - Inline Collapsible */}
+      <div className="mt-8">
+        <button
+          onClick={() => setShowPromptEditor(!showPromptEditor)}
+          className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors mb-4"
+        >
+          <ChevronIcon className={`w-4 h-4 transition-transform ${showPromptEditor ? 'rotate-180' : ''}`} />
+          {showPromptEditor ? 'Hide Prompt Editor' : 'Show Prompt Editor'}
+          {isFetchingPrompt && <Spinner size="sm" />}
+        </button>
+
+        {showPromptEditor && (
+          <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+            <PromptEditor
+              generatedPrompt={heroGeneratedPrompt}
+              customPrompt={heroCustomPrompt}
+              onCustomPromptChange={setHeroCustomPrompt}
+              useCustom={useCustomHeroPrompt}
+              onToggleCustom={setUseCustomHeroPrompt}
+              disabled={isGeneratingHero}
             />
-            <div className="flex justify-end gap-3 mt-4">
-              <Button variant="outline" onClick={() => setShowPromptEditor(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handlePromptSubmit}>
-                Generate with Prompt
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap justify-center gap-4 mt-8">
@@ -197,15 +249,7 @@ export function HeroPreview() {
           isLoading={isGeneratingHero}
         >
           <RefreshIcon className="w-4 h-4 mr-1" />
-          Regenerate
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setShowPromptEditor(true)}
-          disabled={isGeneratingHero}
-        >
-          <EditIcon className="w-4 h-4 mr-1" />
-          Edit Prompt
+          {useCustomHeroPrompt && heroCustomPrompt ? 'Generate with Custom Prompt' : 'Regenerate'}
         </Button>
         <Button
           onClick={handleApprove}
@@ -235,10 +279,10 @@ function RefreshIcon({ className }: { className?: string }) {
   );
 }
 
-function EditIcon({ className }: { className?: string }) {
+function ChevronIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
     </svg>
   );
 }

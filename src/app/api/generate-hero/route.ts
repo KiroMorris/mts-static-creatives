@@ -11,6 +11,7 @@ interface GenerateHeroRequest {
   productImageId?: string;
   customPrompt?: string;
   modelSceneStyle?: ModelSceneStyle;
+  previewPromptOnly?: boolean;  // If true, just return the generated prompt without generating the image
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<HeroGenerationResponse>> {
@@ -51,19 +52,30 @@ export async function POST(request: NextRequest): Promise<NextResponse<HeroGener
       );
     }
 
-    // Build the prompt with style settings
-    let prompt: string;
-    if (body.customPrompt) {
-      prompt = body.customPrompt;
-    } else {
-      // Use default prompt from prompts.ts with style settings
-      const productType = 'hoodie'; // Default for MVP
-      const productColor = 'the shown'; // Let AI detect from image
-      prompt = PROMPTS.hero(productColor, productType, body.modelSceneStyle);
-    }
+    // Build the auto-generated prompt (always compute this for the response)
+    const productType = 'hoodie'; // Default for MVP
+    const productColor = 'the shown'; // Let AI detect from image
+    const generatedPrompt = PROMPTS.hero(productColor, productType, body.modelSceneStyle);
+
+    // Determine which prompt to use for generation
+    const prompt = body.customPrompt || generatedPrompt;
 
     // Style is integrated in the prompt via PROMPTS.hero()
     console.log('Generated hero prompt:', prompt.substring(0, 200) + '...');
+
+    // If previewPromptOnly is true, return just the generated prompt without generating an image
+    if (body.previewPromptOnly) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          heroImageUrl: '',
+          heroImageId: '',
+          promptUsed: prompt,
+          generationTime: 0,
+          generatedPrompt,
+        },
+      });
+    }
 
     // Generate the hero image using Gemini
     let generatedImage;
@@ -142,6 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<HeroGener
         heroImageId,
         promptUsed: prompt,
         generationTime,
+        generatedPrompt,
       },
     });
   } catch (error) {
