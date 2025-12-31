@@ -1,6 +1,6 @@
 // AI prompt templates for Gemini - JSON structured prompts
 // 90s/2000s direct flash aesthetic - raw, unpolished, authentic
-import type { ModelSceneStyle } from '@/types';
+import type { ModelSceneStyle, CopySpace } from '@/types';
 
 // ============================================================================
 // Helper functions
@@ -13,11 +13,44 @@ function getModelDescription(style: ModelSceneStyle): string {
   return `${gender} model${ethnicity}, ${age}`;
 }
 
+function getCopySpaceComposition(copySpace: CopySpace): { subject_placement: string; negative_space: string } {
+  switch (copySpace) {
+    case 'left':
+      return {
+        subject_placement: "Position model/subject on the RIGHT side of frame",
+        negative_space: "Leave LEFT 30% of frame clear and empty for text and graphic overlays"
+      };
+    case 'right':
+      return {
+        subject_placement: "Position model/subject on the LEFT side of frame",
+        negative_space: "Leave RIGHT 30% of frame clear and empty for text and graphic overlays"
+      };
+    case 'top':
+      return {
+        subject_placement: "Position model/subject in the LOWER portion of frame",
+        negative_space: "Leave TOP 30% of frame clear and empty for text and graphic overlays"
+      };
+    case 'bottom':
+      return {
+        subject_placement: "Position model/subject in the UPPER portion of frame",
+        negative_space: "Leave BOTTOM 30% of frame clear and empty for text and graphic overlays"
+      };
+    case 'center':
+    default:
+      return {
+        subject_placement: "Center model/subject in frame",
+        negative_space: "No specific copy space required, subject centered"
+      };
+  }
+}
+
 // ============================================================================
-// HERO PROMPT - Your exact JSON with conditional logic
+// HERO PROMPT - Your exact JSON with conditional logic + copy space
 // ============================================================================
 
 export function generateHeroPrompt(style: ModelSceneStyle): string {
+  const copySpaceComposition = getCopySpaceComposition(style.copySpace || 'left');
+
   const prompt: Record<string, unknown> = {
     task: "Transform the uploaded product into a 90s flash fashion hero image",
     input_handling: {
@@ -30,6 +63,12 @@ export function generateHeroPrompt(style: ModelSceneStyle): string {
       model: getModelDescription(style),
       pose: "Relaxed lying-down pose, top-down composition",
       emotion: "Effortless, cozy, confident"
+    },
+    composition: {
+      copy_space: style.copySpace || 'left',
+      subject_placement: copySpaceComposition.subject_placement,
+      negative_space: copySpaceComposition.negative_space,
+      framing: "Shoot for layout - leave room for text and callout overlays"
     },
     camera: {
       lens: "35mm",
@@ -156,6 +195,7 @@ export const PROMPTS = {
       lighting: 'natural',
       selectedHeroTemplate: null,
       customPromptAddition: '',
+      copySpace: 'left',
     };
 
     return generateHeroPrompt(style || defaultStyle);

@@ -35,6 +35,9 @@ export interface TextContent {
 // Style Settings Types
 // ============================================================================
 
+// Copy space options for hero composition
+export type CopySpace = 'left' | 'right' | 'top' | 'bottom' | 'center';
+
 // Model & Scene Style (AI Generation)
 export interface ModelSceneStyle {
   modelGender: 'female' | 'male';
@@ -47,6 +50,8 @@ export interface ModelSceneStyle {
   // Hero template selection (90s/2000s flash aesthetic)
   selectedHeroTemplate: string | null; // Template ID from prompt-templates.ts, null = use dropdowns
   customPromptAddition: string; // Additional custom prompt text to append
+  // Copy space - where to leave room for text/callouts overlay
+  copySpace: CopySpace;
 }
 
 // Hero Style
@@ -111,6 +116,7 @@ export const DEFAULT_STYLE_SETTINGS: StyleSettings = {
     lighting: 'natural',
     selectedHeroTemplate: null, // null = use dropdown settings, or template ID
     customPromptAddition: '', // Additional custom text to append to prompt
+    copySpace: 'left', // Default: leave left side clear for callouts
   },
   hero: {
     zoom: 1.0,

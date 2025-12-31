@@ -64,6 +64,15 @@ const LIGHTING_OPTIONS: { value: ModelSceneStyle['lighting']; label: string }[] 
   { value: 'soft', label: 'Soft' },
 ];
 
+// Copy space options - where to leave room for text/callouts
+const COPY_SPACE_OPTIONS: { value: ModelSceneStyle['copySpace']; label: string; description: string }[] = [
+  { value: 'left', label: 'Copy Left', description: 'Model on right, left clear for callouts' },
+  { value: 'right', label: 'Copy Right', description: 'Model on left, right clear' },
+  { value: 'top', label: 'Copy Top', description: 'Model lower, top clear for headline' },
+  { value: 'bottom', label: 'Copy Bottom', description: 'Model upper, bottom clear' },
+  { value: 'center', label: 'Centered', description: 'Model centered, no copy space' },
+];
+
 // Hero template options for the selector
 const HERO_TEMPLATE_OPTIONS = [
   { value: '', label: 'Use Basic Settings Above' },
@@ -215,6 +224,25 @@ export function ModelScenePanel() {
           </div>
         </div>
 
+        {/* Composition Section - Copy Space */}
+        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+          <SectionHeader title="Composition" icon={<FrameIcon />} />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
+            Where to leave empty space for text and callout overlays
+          </p>
+          <div className="space-y-3">
+            <Select
+              label="Copy Space"
+              value={modelScene.copySpace}
+              options={COPY_SPACE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+              onChange={(v) => setModelSceneStyle({ copySpace: v })}
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {COPY_SPACE_OPTIONS.find(o => o.value === modelScene.copySpace)?.description}
+            </p>
+          </div>
+        </div>
+
         {/* Scene Section - Only show when NOT using template */}
         {!usingTemplate && (
           <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
@@ -325,6 +353,14 @@ function PencilIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+    </svg>
+  );
+}
+
+function FrameIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
     </svg>
   );
 }
