@@ -104,13 +104,84 @@ export function generateHeroPrompt(style: ModelSceneStyle): string {
 }
 
 // ============================================================================
-// CALLOUT PROMPTS - Matching the reference layout exactly
+// CALLOUT PROMPTS - Original 3 prompts
 // ============================================================================
 
 /**
- * Callout 1: Waist/Hem Crop - showing skin peek and fabric edge
+ * Original Callout 1: Fabric Detail - texture and close-up
  */
 export function buildCalloutDetailPrompt(): string {
+  const prompt = {
+    task: "Generate a fabric detail callout from the uploaded product",
+    source: "Extract directly from the uploaded image",
+    crop: "Close-up on fabric, seams, or sleeve area",
+    lighting: "Direct flash to emphasize texture",
+    camera: {
+      lens: "50mm macro feel",
+      focus: "Fabric fibers and softness"
+    },
+    style: "Raw e-commerce texture detail",
+    output: "Zoomed-in callout matching the hero aesthetic"
+  };
+
+  return JSON.stringify(prompt, null, 2);
+}
+
+/**
+ * Original Callout 2: Fit and Comfort - mid-body focus
+ */
+export function buildCalloutMidBodyPrompt(): string {
+  const prompt = {
+    task: "Generate a fit and comfort callout",
+    logic: {
+      if_model_present: "Crop mid-body area showing fit",
+      if_no_model: "Simulate natural drape and gravity"
+    },
+    focus: [
+      "Oversized or relaxed fit",
+      "Natural folds",
+      "Comfort-driven silhouette"
+    ],
+    lighting: {
+      type: "On-camera flash",
+      shadow: "Visible natural shadows"
+    },
+    style: "Early 2000s lifestyle editorial",
+    output: "Comfort-focused callout image"
+  };
+
+  return JSON.stringify(prompt, null, 2);
+}
+
+/**
+ * Original Callout 3: Dynamic Lifestyle - energy and movement
+ */
+export function buildCalloutDynamicPrompt(): string {
+  const prompt = {
+    task: "Create a lifestyle energy callout",
+    logic: {
+      if_model: "Capture relaxed movement or pose",
+      if_no_model: "Create dynamic composition using rotation or folds"
+    },
+    lighting: "Direct flash, freeze-frame look",
+    aesthetic: {
+      vibe: "90s fashion campaign",
+      feel: "Spontaneous and real"
+    },
+    output: "Dynamic callout consistent with the hero image"
+  };
+
+  return JSON.stringify(prompt, null, 2);
+}
+
+// ============================================================================
+// NEW CALLOUT PROMPTS - Based on reference image layout
+// ============================================================================
+
+/**
+ * New Callout 4: Waist/Hem Crop - showing skin peek and fabric edge
+ */
+export function buildCalloutWaistHemPrompt(): string {
   const prompt = {
     task: "Create a waist/hem detail callout from the hero image",
     source: "Crop from the generated hero image",
@@ -132,9 +203,9 @@ export function buildCalloutDetailPrompt(): string {
 }
 
 /**
- * Callout 2: Pocket/Feature Detail - kangaroo pocket or key feature
+ * New Callout 5: Pocket/Feature Detail - kangaroo pocket or key feature
  */
-export function buildCalloutMidBodyPrompt(): string {
+export function buildCalloutPocketPrompt(): string {
   const prompt = {
     task: "Create a pocket/feature detail callout from the hero image",
     source: "Crop from the generated hero image",
@@ -159,9 +230,9 @@ export function buildCalloutMidBodyPrompt(): string {
 }
 
 /**
- * Callout 3: Alternate Pose/Angle - relaxed variation of full look
+ * New Callout 6: Alternate Pose/Angle - relaxed variation of full look
  */
-export function buildCalloutDynamicPrompt(): string {
+export function buildCalloutAlternatePosePrompt(): string {
   const prompt = {
     task: "Create an alternate pose callout showing the full garment",
     source: "Generate variation based on hero image",

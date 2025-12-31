@@ -1,4 +1,12 @@
 import type { CalloutPrompt } from '@/types';
+import {
+  buildCalloutDetailPrompt,
+  buildCalloutMidBodyPrompt,
+  buildCalloutDynamicPrompt,
+  buildCalloutWaistHemPrompt,
+  buildCalloutPocketPrompt,
+  buildCalloutAlternatePosePrompt,
+} from './prompts';
 
 /**
  * Default built-in callout prompts for the Apparel Creative Generator.
@@ -6,52 +14,42 @@ import type { CalloutPrompt } from '@/types';
  * Users can create additional custom prompts alongside these.
  */
 export const DEFAULT_CALLOUT_PROMPTS: CalloutPrompt[] = [
+  // Original 3 prompts (JSON format)
   {
     id: 'builtin-detail',
-    name: 'Detail Shot',
-    promptText: `Close-up fashion photography shot focusing on the fabric texture and quality.
-Show: Soft cotton/fleece texture, quality stitching details, fabric drape
-Framing: SQUARE 1:1 aspect ratio, tight crop on shoulder/chest area
-Lighting: Soft diffused lighting
-IMPORTANT: Output must be SQUARE (1:1 ratio). Focus on texture and material quality.`,
+    name: 'Fabric Detail',
+    promptText: buildCalloutDetailPrompt(),
     isBuiltIn: true,
   },
   {
     id: 'builtin-fit',
-    name: 'Fit Shot',
-    promptText: `Fashion photography showing the fit of the garment on the same model.
-Show: Cropped view of torso/waist area showing how the garment fits
-Framing: SQUARE 1:1 aspect ratio, mid-body crop, casual relaxed pose
-Lighting: Natural lighting
-IMPORTANT: Output must be SQUARE (1:1 ratio). Emphasize the comfortable, flattering fit.`,
+    name: 'Fit & Comfort',
+    promptText: buildCalloutMidBodyPrompt(),
     isBuiltIn: true,
   },
   {
     id: 'builtin-pose',
-    name: 'Pose Shot',
-    promptText: `Alternative lifestyle shot of the same model wearing the garment.
-Pose: Natural relaxed pose, different angle from hero
-Expression: Natural expression
-Framing: SQUARE 1:1 aspect ratio, head and upper body visible
-IMPORTANT: Output must be SQUARE (1:1 ratio). Show versatility and lifestyle context.`,
+    name: 'Dynamic Lifestyle',
+    promptText: buildCalloutDynamicPrompt(),
+    isBuiltIn: true,
+  },
+  // New 3 prompts based on reference image
+  {
+    id: 'builtin-waist-hem',
+    name: 'Waist/Hem Crop',
+    promptText: buildCalloutWaistHemPrompt(),
     isBuiltIn: true,
   },
   {
-    id: 'builtin-back',
-    name: 'Back View',
-    promptText: `Fashion photography showing the back of the garment.
-Show: Back view of the model wearing the garment, showing back design and fit
-Framing: SQUARE 1:1 aspect ratio, upper body from behind
-IMPORTANT: Output must be SQUARE (1:1 ratio). Show the back design clearly.`,
+    id: 'builtin-pocket',
+    name: 'Pocket Detail',
+    promptText: buildCalloutPocketPrompt(),
     isBuiltIn: true,
   },
   {
-    id: 'builtin-lifestyle',
-    name: 'Lifestyle Action',
-    promptText: `Dynamic lifestyle shot of the model in motion or activity.
-Show: Model in natural activity (walking, stretching, casual movement)
-Framing: SQUARE 1:1 aspect ratio, action-oriented composition
-IMPORTANT: Output must be SQUARE (1:1 ratio). Show the garment in real-life context.`,
+    id: 'builtin-alternate-pose',
+    name: 'Alternate Pose',
+    promptText: buildCalloutAlternatePosePrompt(),
     isBuiltIn: true,
   },
 ];
