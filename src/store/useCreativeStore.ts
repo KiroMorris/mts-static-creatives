@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   CreativeStore,
+  CreativeState,
   Step,
   CalloutType,
   CalloutPrompt,
@@ -16,6 +18,44 @@ import {
   DEFAULT_SELECTED_CALLOUTS,
   generateCalloutPromptId,
 } from '@/lib/defaultCalloutPrompts';
+
+// ============================================================================
+// Persistence Types & Utilities
+// ============================================================================
+
+// Type for persisted state (only the fields we save to localStorage)
+interface PersistedState {
+  styleSettings: StyleSettings;
+  selectedCallouts: [string, string, string];
+  customCalloutPrompts: CalloutPrompt[];
+  headline: string;
+  subtitle: string;
+}
+
+/**
+ * Deep merge utility for style settings.
+ * Ensures all nested objects are properly merged with defaults.
+ */
+function deepMergeStyleSettings(
+  defaults: StyleSettings,
+  persisted?: Partial<StyleSettings>
+): StyleSettings {
+  if (!persisted) return defaults;
+
+  return {
+    modelScene: { ...defaults.modelScene, ...persisted.modelScene },
+    hero: { ...defaults.hero, ...persisted.hero },
+    text: { ...defaults.text, ...persisted.text },
+    callout: {
+      ...defaults.callout,
+      ...persisted.callout,
+      // Ensure nested zoom settings are merged
+      detail: { ...defaults.callout.detail, ...persisted.callout?.detail },
+      fit: { ...defaults.callout.fit, ...persisted.callout?.fit },
+      pose: { ...defaults.callout.pose, ...persisted.callout?.pose },
+    },
+  };
+}
 
 // DEV MODE: Set to true to skip generation steps with test images
 const DEV_MODE = false;
@@ -80,146 +120,224 @@ const productionState = {
 
 const initialState = DEV_MODE ? devState : productionState;
 
-export const useCreativeStore = create<CreativeStore>((set) => ({
-  ...initialState,
+// ============================================================================
+// Store with Persist Middleware
+// ============================================================================
 
-  setProductImage: (url: string, file: File) =>
-    set({ productImage: url, productImageFile: file, error: null }),
+export const useCreativeStore = create<CreativeStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  setStyleSettings: (settings: Partial<StyleSettings>) =>
-    set((state) => ({
-      styleSettings: { ...state.styleSettings, ...settings },
-    })),
+      setProductImage: (url: string, file: File) =>
+        set({ productImage: url, productImageFile: file, error: null }),
 
-  setModelSceneStyle: (style: Partial<ModelSceneStyle>) =>
-    set((state) => ({
-      styleSettings: {
-        ...state.styleSettings,
-        modelScene: { ...state.styleSettings.modelScene, ...style },
-      },
-    })),
+      setStyleSettings: (settings: Partial<StyleSettings>) =>
+        set((state) => ({
+          styleSettings: { ...state.styleSettings, ...settings },
+        })),
 
-  setTextStyle: (style: Partial<TextStyle>) =>
-    set((state) => ({
-      styleSettings: {
-        ...state.styleSettings,
-        text: { ...state.styleSettings.text, ...style },
-      },
-    })),
+      setModelSceneStyle: (style: Partial<ModelSceneStyle>) =>
+        set((state) => ({
+          styleSettings: {
+            ...state.styleSettings,
+            modelScene: { ...state.styleSettings.modelScene, ...style },
+          },
+        })),
 
-  setCalloutStyle: (style: Partial<CalloutStyle>) =>
-    set((state) => ({
-      styleSettings: {
-        ...state.styleSettings,
-        callout: { ...state.styleSettings.callout, ...style },
-      },
-    })),
+      setTextStyle: (style: Partial<TextStyle>) =>
+        set((state) => ({
+          styleSettings: {
+            ...state.styleSettings,
+            text: { ...state.styleSettings.text, ...style },
+          },
+        })),
 
-  setHeroStyle: (style: Partial<HeroStyle>) =>
-    set((state) => ({
-      styleSettings: {
-        ...state.styleSettings,
-        hero: { ...state.styleSettings.hero, ...style },
-      },
-    })),
+      setCalloutStyle: (style: Partial<CalloutStyle>) =>
+        set((state) => ({
+          styleSettings: {
+            ...state.styleSettings,
+            callout: { ...state.styleSettings.callout, ...style },
+          },
+        })),
 
-  setHeroImage: (url: string) =>
-    set({ heroImage: url, error: null }),
+      setHeroStyle: (style: Partial<HeroStyle>) =>
+        set((state) => ({
+          styleSettings: {
+            ...state.styleSettings,
+            hero: { ...state.styleSettings.hero, ...style },
+          },
+        })),
 
-  setCalloutImage: (type: CalloutType, url: string) =>
-    set((state) => ({
-      calloutImages: { ...state.calloutImages, [type]: url },
-      error: null,
-    })),
+      setHeroImage: (url: string) =>
+        set({ heroImage: url, error: null }),
 
-  setText: (headline: string, subtitle: string) =>
-    set({ headline, subtitle }),
+      setCalloutImage: (type: CalloutType, url: string) =>
+        set((state) => ({
+          calloutImages: { ...state.calloutImages, [type]: url },
+          error: null,
+        })),
 
-  setFinalCollage: (url: string) =>
-    set({ finalCollage: url, error: null }),
+      setText: (headline: string, subtitle: string) =>
+        set({ headline, subtitle }),
 
-  setLoading: (key, value) =>
-    set({ [key]: value }),
+      setFinalCollage: (url: string) =>
+        set({ finalCollage: url, error: null }),
 
-  setError: (error: string | null) =>
-    set({ error }),
+      setLoading: (key, value) =>
+        set({ [key]: value }),
 
-  nextStep: () =>
-    set((state) => ({
-      currentStep: Math.min(state.currentStep + 1, 7) as Step,
-    })),
+      setError: (error: string | null) =>
+        set({ error }),
 
-  prevStep: () =>
-    set((state) => ({
-      currentStep: Math.max(state.currentStep - 1, 1) as Step,
-    })),
+      nextStep: () =>
+        set((state) => ({
+          currentStep: Math.min(state.currentStep + 1, 7) as Step,
+        })),
 
-  goToStep: (step: Step) =>
-    set({ currentStep: step }),
+      prevStep: () =>
+        set((state) => ({
+          currentStep: Math.max(state.currentStep - 1, 1) as Step,
+        })),
 
-  reset: () => set(initialState),
+      goToStep: (step: Step) =>
+        set({ currentStep: step }),
 
-  // Hero prompt control actions
-  setHeroGeneratedPrompt: (prompt: string) =>
-    set({ heroGeneratedPrompt: prompt }),
+      reset: () => set(initialState),
 
-  setHeroCustomPrompt: (prompt: string) =>
-    set({ heroCustomPrompt: prompt }),
+      // Hero prompt control actions
+      setHeroGeneratedPrompt: (prompt: string) =>
+        set({ heroGeneratedPrompt: prompt }),
 
-  setUseCustomHeroPrompt: (use: boolean) =>
-    set({ useCustomHeroPrompt: use }),
+      setHeroCustomPrompt: (prompt: string) =>
+        set({ heroCustomPrompt: prompt }),
 
-  // Callout prompt management actions
-  addCalloutPrompt: (prompt: Omit<CalloutPrompt, 'id' | 'createdAt'>) =>
-    set((state) => ({
-      calloutPrompts: [
-        ...state.calloutPrompts,
-        {
-          ...prompt,
-          id: generateCalloutPromptId(),
-          createdAt: Date.now(),
-        },
-      ],
-    })),
+      setUseCustomHeroPrompt: (use: boolean) =>
+        set({ useCustomHeroPrompt: use }),
 
-  updateCalloutPrompt: (id: string, updates: Partial<CalloutPrompt>) =>
-    set((state) => ({
-      calloutPrompts: state.calloutPrompts.map((prompt) =>
-        prompt.id === id ? { ...prompt, ...updates } : prompt
-      ),
-    })),
+      // Callout prompt management actions
+      addCalloutPrompt: (prompt: Omit<CalloutPrompt, 'id' | 'createdAt'>) =>
+        set((state) => ({
+          calloutPrompts: [
+            ...state.calloutPrompts,
+            {
+              ...prompt,
+              id: generateCalloutPromptId(),
+              createdAt: Date.now(),
+            },
+          ],
+        })),
 
-  deleteCalloutPrompt: (id: string) =>
-    set((state) => {
-      // Don't allow deleting built-in prompts
-      const promptToDelete = state.calloutPrompts.find((p) => p.id === id);
-      if (promptToDelete?.isBuiltIn) {
-        return state;
-      }
+      updateCalloutPrompt: (id: string, updates: Partial<CalloutPrompt>) =>
+        set((state) => ({
+          calloutPrompts: state.calloutPrompts.map((prompt) =>
+            prompt.id === id ? { ...prompt, ...updates } : prompt
+          ),
+        })),
 
-      // Remove the prompt from the list
-      const newCalloutPrompts = state.calloutPrompts.filter((p) => p.id !== id);
+      deleteCalloutPrompt: (id: string) =>
+        set((state) => {
+          // Don't allow deleting built-in prompts
+          const promptToDelete = state.calloutPrompts.find((p) => p.id === id);
+          if (promptToDelete?.isBuiltIn) {
+            return state;
+          }
 
-      // If this prompt was selected in any slot, replace it with the first available prompt
-      const firstAvailableId = newCalloutPrompts[0]?.id || '';
-      const newSelectedCallouts = state.selectedCallouts.map((selectedId) =>
-        selectedId === id ? firstAvailableId : selectedId
-      ) as [string, string, string];
+          // Remove the prompt from the list
+          const newCalloutPrompts = state.calloutPrompts.filter((p) => p.id !== id);
 
-      return {
-        calloutPrompts: newCalloutPrompts,
-        selectedCallouts: newSelectedCallouts,
-      };
+          // If this prompt was selected in any slot, replace it with the first available prompt
+          const firstAvailableId = newCalloutPrompts[0]?.id || '';
+          const newSelectedCallouts = state.selectedCallouts.map((selectedId) =>
+            selectedId === id ? firstAvailableId : selectedId
+          ) as [string, string, string];
+
+          return {
+            calloutPrompts: newCalloutPrompts,
+            selectedCallouts: newSelectedCallouts,
+          };
+        }),
+
+      // Callout selection actions
+      setSelectedCallout: (slotIndex: 0 | 1 | 2, promptId: string) =>
+        set((state) => {
+          const newSelectedCallouts = [...state.selectedCallouts] as [string, string, string];
+          newSelectedCallouts[slotIndex] = promptId;
+          return { selectedCallouts: newSelectedCallouts };
+        }),
+
+      setAllSelectedCallouts: (promptIds: [string, string, string]) =>
+        set({ selectedCallouts: promptIds }),
     }),
+    {
+      name: 'acg-settings',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
 
-  // Callout selection actions
-  setSelectedCallout: (slotIndex: 0 | 1 | 2, promptId: string) =>
-    set((state) => {
-      const newSelectedCallouts = [...state.selectedCallouts] as [string, string, string];
-      newSelectedCallouts[slotIndex] = promptId;
-      return { selectedCallouts: newSelectedCallouts };
-    }),
+      // Only persist specific fields (exclude generated content, loading states, etc.)
+      partialize: (state): PersistedState => ({
+        // Style settings (all of them)
+        styleSettings: state.styleSettings,
 
-  setAllSelectedCallouts: (promptIds: [string, string, string]) =>
-    set({ selectedCallouts: promptIds }),
-}));
+        // Callout selections
+        selectedCallouts: state.selectedCallouts,
+
+        // Custom callout prompts only (filter out built-in)
+        customCalloutPrompts: state.calloutPrompts.filter((p) => !p.isBuiltIn),
+
+        // Text content
+        headline: state.headline,
+        subtitle: state.subtitle,
+      }),
+
+      // Custom merge function to restore state with defaults
+      merge: (persisted, current) => {
+        try {
+          const persistedState = persisted as PersistedState | undefined;
+
+          if (!persistedState) {
+            return current;
+          }
+
+          // Merge custom callout prompts with built-in prompts
+          const customPrompts = persistedState.customCalloutPrompts || [];
+          const mergedCalloutPrompts: CalloutPrompt[] = [
+            ...DEFAULT_CALLOUT_PROMPTS,
+            ...customPrompts,
+          ];
+
+          // Validate selectedCallouts - ensure all referenced prompts exist
+          const validPromptIds = new Set(mergedCalloutPrompts.map((p) => p.id));
+          const validatedCallouts = (persistedState.selectedCallouts || DEFAULT_SELECTED_CALLOUTS).map(
+            (id, index) => {
+              if (validPromptIds.has(id)) {
+                return id;
+              }
+              // Fall back to default for this slot if the referenced prompt doesn't exist
+              return DEFAULT_SELECTED_CALLOUTS[index] || DEFAULT_CALLOUT_PROMPTS[0]?.id || '';
+            }
+          ) as [string, string, string];
+
+          return {
+            ...current,
+            // Deep merge style settings with defaults
+            styleSettings: deepMergeStyleSettings(
+              DEFAULT_STYLE_SETTINGS,
+              persistedState.styleSettings
+            ),
+            // Validated callout selections
+            selectedCallouts: validatedCallouts,
+            // Merged callout prompts (built-in from code + custom from storage)
+            calloutPrompts: mergedCalloutPrompts,
+            // Text content with fallback to empty string
+            headline: persistedState.headline ?? '',
+            subtitle: persistedState.subtitle ?? '',
+          };
+        } catch (error) {
+          console.warn('Failed to restore settings, using defaults:', error);
+          return current;
+        }
+      },
+    }
+  )
+);

@@ -325,3 +325,53 @@ export interface CreativeActions {
 }
 
 export type CreativeStore = CreativeState & CreativeActions;
+
+// ============================================================================
+// Preset Types (Workflow Saving System)
+// ============================================================================
+
+export interface Preset {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  thumbnail?: string;              // Optional base64 preview
+
+  // Core settings
+  styleSettings: StyleSettings;
+
+  // Callout selections
+  selectedCallouts: [string, string, string];
+  customCalloutPrompts: CalloutPrompt[];
+
+  // Optional text
+  includeText: boolean;
+  headline?: string;
+  subtitle?: string;
+
+  // Metadata
+  tags?: string[];
+  isDefault?: boolean;             // System presets (cannot be deleted)
+}
+
+export interface PresetState {
+  presets: Preset[];
+  activePresetId: string | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface PresetActions {
+  loadPresets: () => void;
+  savePreset: (name: string, description?: string, includeText?: boolean) => Preset;
+  updatePreset: (id: string, updates: Partial<Preset>) => void;
+  deletePreset: (id: string) => void;
+  duplicatePreset: (id: string, newName: string) => Preset;
+  applyPreset: (id: string) => void;
+  exportPreset: (id: string) => void;
+  importPresets: (file: File) => Promise<number>;
+  setActivePresetId: (id: string | null) => void;
+}
+
+export type PresetStore = PresetState & PresetActions;

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCreativeStore } from '@/store/useCreativeStore';
 import { ProgressSteps } from '@/components/ui/ProgressSteps';
 import { ProductUploader } from '@/components/upload/ProductUploader';
@@ -10,10 +10,13 @@ import { HeroPreview } from '@/components/preview/HeroPreview';
 import { CalloutGrid } from '@/components/preview/CalloutGrid';
 import { TextInputForm } from '@/components/text/TextInputForm';
 import { CollagePreview } from '@/components/collage/CollagePreview';
+import { PresetSelector, SavePresetModal, PresetManager } from '@/components/preset';
 import type { Step } from '@/types';
 
 export default function Home() {
   const { currentStep, goToStep, reset } = useCreativeStore();
+  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
+  const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
 
   // Render the current step's component
   // Steps: 1=Upload, 2=Model/Scene, 3=Hero, 4=Callouts, 5=Text, 6=Layout, 7=Export
@@ -61,13 +64,19 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Reset button */}
-            <button
-              onClick={reset}
-              className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
-            >
-              Start Over
-            </button>
+            {/* Preset Selector and Reset */}
+            <div className="flex items-center gap-3">
+              <PresetSelector
+                onSavePreset={() => setIsSavePresetOpen(true)}
+                onManagePresets={() => setIsPresetManagerOpen(true)}
+              />
+              <button
+                onClick={reset}
+                className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+              >
+                Start Over
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -95,6 +104,16 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Preset Modals */}
+      <SavePresetModal
+        isOpen={isSavePresetOpen}
+        onClose={() => setIsSavePresetOpen(false)}
+      />
+      <PresetManager
+        isOpen={isPresetManagerOpen}
+        onClose={() => setIsPresetManagerOpen(false)}
+      />
     </div>
   );
 }
