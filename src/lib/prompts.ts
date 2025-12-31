@@ -104,35 +104,58 @@ export function generateHeroPrompt(style: ModelSceneStyle): string {
 }
 
 // ============================================================================
-// CALLOUT PROMPTS - Original 3 prompts
+// SHARED STYLE - 90s/2000s Direct Flash Aesthetic (same as hero)
+// ============================================================================
+
+const SHARED_STYLE = {
+  lighting: {
+    type: "Direct on-camera flash",
+    style: "Raw, slightly harsh",
+    era: "90s / early 2000s fashion"
+  },
+  aesthetic: {
+    grain: "Subtle film grain",
+    polish: "Unpolished, authentic",
+    vibe: "90s fashion campaign"
+  },
+  camera: {
+    lens: "35mm",
+    focus: "Sharp, direct"
+  }
+};
+
+// ============================================================================
+// CALLOUT PROMPTS - All using same 90s flash style as hero
 // ============================================================================
 
 /**
- * Original Callout 1: Fabric Detail - texture and close-up
+ * Callout 1: Fabric Detail - texture and close-up
  */
 export function buildCalloutDetailPrompt(): string {
   const prompt = {
-    task: "Generate a fabric detail callout from the uploaded product",
-    source: "Extract directly from the uploaded image",
+    task: "Generate a fabric detail callout from the hero image",
+    source: "Crop from the generated hero image",
     crop: "Close-up on fabric, seams, or sleeve area",
-    lighting: "Direct flash to emphasize texture",
     camera: {
-      lens: "50mm macro feel",
-      focus: "Fabric fibers and softness"
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp on fabric fibers and texture"
     },
-    style: "Raw e-commerce texture detail",
-    output: "Zoomed-in callout matching the hero aesthetic"
+    lighting: SHARED_STYLE.lighting,
+    aesthetic: SHARED_STYLE.aesthetic,
+    style: "Raw e-commerce texture detail with 90s flash look",
+    output: "Zoomed-in callout matching the hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * Original Callout 2: Fit and Comfort - mid-body focus
+ * Callout 2: Fit and Comfort - mid-body focus
  */
 export function buildCalloutMidBodyPrompt(): string {
   const prompt = {
-    task: "Generate a fit and comfort callout",
+    task: "Generate a fit and comfort callout from the hero image",
+    source: "Crop from the generated hero image",
     logic: {
       if_model_present: "Crop mid-body area showing fit",
       if_no_model: "Simulate natural drape and gravity"
@@ -142,44 +165,48 @@ export function buildCalloutMidBodyPrompt(): string {
       "Natural folds",
       "Comfort-driven silhouette"
     ],
-    lighting: {
-      type: "On-camera flash",
-      shadow: "Visible natural shadows"
+    camera: {
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp on garment fit"
     },
-    style: "Early 2000s lifestyle editorial",
-    output: "Comfort-focused callout image"
+    lighting: SHARED_STYLE.lighting,
+    aesthetic: SHARED_STYLE.aesthetic,
+    style: "Early 2000s lifestyle editorial with direct flash",
+    output: "Comfort-focused callout matching hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * Original Callout 3: Dynamic Lifestyle - energy and movement
+ * Callout 3: Dynamic Lifestyle - energy and movement
  */
 export function buildCalloutDynamicPrompt(): string {
   const prompt = {
-    task: "Create a lifestyle energy callout",
+    task: "Create a lifestyle energy callout from the hero image",
+    source: "Generate variation based on hero image",
     logic: {
       if_model: "Capture relaxed movement or pose",
       if_no_model: "Create dynamic composition using rotation or folds"
     },
-    lighting: "Direct flash, freeze-frame look",
+    camera: {
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp, freeze-frame"
+    },
+    lighting: SHARED_STYLE.lighting,
     aesthetic: {
-      vibe: "90s fashion campaign",
+      ...SHARED_STYLE.aesthetic,
       feel: "Spontaneous and real"
     },
-    output: "Dynamic callout consistent with the hero image"
+    style: "90s fashion campaign with direct flash",
+    output: "Dynamic callout matching hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
-// ============================================================================
-// NEW CALLOUT PROMPTS - Based on reference image layout
-// ============================================================================
-
 /**
- * New Callout 4: Waist/Hem Crop - showing skin peek and fabric edge
+ * Callout 4: Waist/Hem Crop - showing skin peek and fabric edge
  */
 export function buildCalloutWaistHemPrompt(): string {
   const prompt = {
@@ -194,16 +221,21 @@ export function buildCalloutWaistHemPrompt(): string {
       framing: "Tight crop on waistband/hem area",
       include: ["Bottom edge of garment", "Hint of skin underneath", "Natural fabric drape"]
     },
-    lighting: "Same direct flash as hero, consistent look",
-    style: "90s editorial detail crop",
-    output: "Waist/hem callout showing fit and fabric edge, matching hero aesthetic"
+    camera: {
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp on hem and skin"
+    },
+    lighting: SHARED_STYLE.lighting,
+    aesthetic: SHARED_STYLE.aesthetic,
+    style: "90s editorial detail crop with direct flash",
+    output: "Waist/hem callout matching hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * New Callout 5: Pocket/Feature Detail - kangaroo pocket or key feature
+ * Callout 5: Pocket/Feature Detail - kangaroo pocket or key feature
  */
 export function buildCalloutPocketPrompt(): string {
   const prompt = {
@@ -218,19 +250,21 @@ export function buildCalloutPocketPrompt(): string {
       framing: "Centered on pocket or main garment feature",
       include: ["Pocket detail", "Fabric texture", "Natural hand position if visible"]
     },
-    lighting: {
-      type: "On-camera flash",
-      effect: "Highlights pocket depth and fabric texture"
+    camera: {
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp on pocket and texture"
     },
-    style: "Early 2000s fashion editorial detail",
-    output: "Pocket/feature callout showing garment functionality, matching hero aesthetic"
+    lighting: SHARED_STYLE.lighting,
+    aesthetic: SHARED_STYLE.aesthetic,
+    style: "Early 2000s fashion editorial with direct flash",
+    output: "Pocket/feature callout matching hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * New Callout 6: Alternate Pose/Angle - relaxed variation of full look
+ * Callout 6: Alternate Pose/Angle - relaxed variation of full look
  */
 export function buildCalloutAlternatePosePrompt(): string {
   const prompt = {
@@ -246,12 +280,17 @@ export function buildCalloutAlternatePosePrompt(): string {
       angle: "Different perspective than hero - could be more overhead or shifted",
       vibe: "Candid, relaxed, lifestyle moment"
     },
-    lighting: "Direct flash, freeze-frame look, consistent with hero",
+    camera: {
+      lens: SHARED_STYLE.camera.lens,
+      focus: "Sharp, same as hero"
+    },
+    lighting: SHARED_STYLE.lighting,
     aesthetic: {
-      style: "90s fashion campaign outtake",
+      ...SHARED_STYLE.aesthetic,
       feel: "Spontaneous alternate shot, same session"
     },
-    output: "Alternate pose callout showing garment from different angle, matching hero aesthetic"
+    style: "90s fashion campaign outtake with direct flash",
+    output: "Alternate pose callout matching hero aesthetic exactly"
   };
 
   return JSON.stringify(prompt, null, 2);
