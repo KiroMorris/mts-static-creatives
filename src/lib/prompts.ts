@@ -104,71 +104,83 @@ export function generateHeroPrompt(style: ModelSceneStyle): string {
 }
 
 // ============================================================================
-// CALLOUT PROMPTS - Your exact JSON prompts
+// CALLOUT PROMPTS - Matching the reference layout exactly
 // ============================================================================
 
 /**
- * Fabric Detail Callout - texture and close-up
+ * Callout 1: Waist/Hem Crop - showing skin peek and fabric edge
  */
 export function buildCalloutDetailPrompt(): string {
   const prompt = {
-    task: "Generate a fabric detail callout from the uploaded product",
-    source: "Extract directly from the uploaded image",
-    crop: "Close-up on fabric, seams, or sleeve area",
-    lighting: "Direct flash to emphasize texture",
-    camera: {
-      lens: "50mm macro feel",
-      focus: "Fabric fibers and softness"
+    task: "Create a waist/hem detail callout from the hero image",
+    source: "Crop from the generated hero image",
+    crop: {
+      area: "Lower torso - waist to hip area",
+      focus: "Where garment hem meets skin",
+      show: "Slight skin peek, fabric edge, relaxed fit on body"
     },
-    style: "Raw e-commerce texture detail",
-    output: "Zoomed-in callout matching the hero aesthetic"
+    composition: {
+      framing: "Tight crop on waistband/hem area",
+      include: ["Bottom edge of garment", "Hint of skin underneath", "Natural fabric drape"]
+    },
+    lighting: "Same direct flash as hero, consistent look",
+    style: "90s editorial detail crop",
+    output: "Waist/hem callout showing fit and fabric edge, matching hero aesthetic"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * Fit and Comfort Callout - mid-body focus
+ * Callout 2: Pocket/Feature Detail - kangaroo pocket or key feature
  */
 export function buildCalloutMidBodyPrompt(): string {
   const prompt = {
-    task: "Generate a fit and comfort callout",
-    logic: {
-      if_model_present: "Crop mid-body area showing fit",
-      if_no_model: "Simulate natural drape and gravity"
+    task: "Create a pocket/feature detail callout from the hero image",
+    source: "Crop from the generated hero image",
+    crop: {
+      area: "Mid-torso focusing on pocket or key garment feature",
+      focus: "Kangaroo pocket, hand placement, or central feature",
+      show: "Pocket opening, fabric texture, hands resting or near pocket"
     },
-    focus: [
-      "Oversized or relaxed fit",
-      "Natural folds",
-      "Comfort-driven silhouette"
-    ],
+    composition: {
+      framing: "Centered on pocket or main garment feature",
+      include: ["Pocket detail", "Fabric texture", "Natural hand position if visible"]
+    },
     lighting: {
       type: "On-camera flash",
-      shadow: "Visible natural shadows"
+      effect: "Highlights pocket depth and fabric texture"
     },
-    style: "Early 2000s lifestyle editorial",
-    output: "Comfort-focused callout image"
+    style: "Early 2000s fashion editorial detail",
+    output: "Pocket/feature callout showing garment functionality, matching hero aesthetic"
   };
 
   return JSON.stringify(prompt, null, 2);
 }
 
 /**
- * Dynamic Lifestyle Callout - energy and movement
+ * Callout 3: Alternate Pose/Angle - relaxed variation of full look
  */
 export function buildCalloutDynamicPrompt(): string {
   const prompt = {
-    task: "Create a lifestyle energy callout",
-    logic: {
-      if_model: "Capture relaxed movement or pose",
-      if_no_model: "Create dynamic composition using rotation or folds"
+    task: "Create an alternate pose callout showing the full garment",
+    source: "Generate variation based on hero image",
+    subject: {
+      model: "Same model from hero image",
+      pose: "Different relaxed angle - lying down, shifted position, or alternate view",
+      garment: "Same garment, full or 3/4 view visible"
     },
-    lighting: "Direct flash, freeze-frame look",
+    composition: {
+      framing: "Smaller full-body or 3/4 crop",
+      angle: "Different perspective than hero - could be more overhead or shifted",
+      vibe: "Candid, relaxed, lifestyle moment"
+    },
+    lighting: "Direct flash, freeze-frame look, consistent with hero",
     aesthetic: {
-      vibe: "90s fashion campaign",
-      feel: "Spontaneous and real"
+      style: "90s fashion campaign outtake",
+      feel: "Spontaneous alternate shot, same session"
     },
-    output: "Dynamic callout consistent with the hero image"
+    output: "Alternate pose callout showing garment from different angle, matching hero aesthetic"
   };
 
   return JSON.stringify(prompt, null, 2);
