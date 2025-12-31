@@ -17,6 +17,8 @@ import {
 // Types
 // ============================================================================
 
+type CalloutType = 'detail' | 'fit' | 'pose';
+
 interface ComposeCollageRequest {
   heroImageUrl: string;
   callouts: {
@@ -58,6 +60,7 @@ interface ComposeCollageRequest {
     y: number;
     zoom: number;
   };
+  calloutOrder?: [CalloutType, CalloutType, CalloutType];
   outputFormat?: 'base64' | 'file';
   fileFormat?: 'png' | 'jpeg' | 'webp';
 }
@@ -212,6 +215,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       heroStyle,
       textStyle,
       calloutStyle,
+      calloutOrder,
       outputFormat = 'base64',
       fileFormat = 'png'
     } = body as ComposeCollageRequest;
@@ -259,7 +263,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ComposeCo
       },
       heroStyle,
       textStyle,
-      calloutStyle
+      calloutStyle,
+      calloutOrder
     });
 
     const collageId = generateCollageId();

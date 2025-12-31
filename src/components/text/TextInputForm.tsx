@@ -75,8 +75,8 @@ export function TextInputForm() {
   return (
     <div className="w-full max-w-4xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-          Add Your Text
+        <h2 className="text-2xl font-bold mb-2">
+          <span className="gradient-text">Add Your Text</span>
         </h2>
         <p className="text-zinc-600 dark:text-zinc-400">
           Enter your headline and subtitle for the final creative
@@ -86,10 +86,13 @@ export function TextInputForm() {
       <div className="grid md:grid-cols-2 gap-8">
         {/* Preview with text overlay */}
         <div className="order-2 md:order-1">
-          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3 uppercase tracking-wide">
-            Preview
-          </h3>
-          <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 animate-pulse"></div>
+            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+              Live Preview
+            </h3>
+          </div>
+          <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 shadow-2xl shadow-violet-500/10 ring-1 ring-violet-500/10">
             {heroImage && (
               <Image
                 src={heroImage}
@@ -121,16 +124,20 @@ export function TextInputForm() {
 
         {/* Form */}
         <div className="order-1 md:order-2">
-          <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3 uppercase tracking-wide">
-            Text Content
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex items-center gap-2 mb-4">
+            <TextIcon className="w-4 h-4 text-violet-500" />
+            <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+              Text Content
+            </h3>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-6 glass-card rounded-2xl p-6">
             {/* Headline Input */}
             <div>
               <label
                 htmlFor="headline"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+                className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2"
               >
+                <HeadlineIcon className="w-4 h-4 text-violet-500" />
                 Headline
               </label>
               <input
@@ -141,31 +148,28 @@ export function TextInputForm() {
                 placeholder="New colors just dropped"
                 maxLength={MAX_HEADLINE_LENGTH}
                 className={`
-                  w-full px-4 py-3 rounded-lg border
-                  bg-white dark:bg-zinc-800
-                  text-zinc-900 dark:text-white
-                  placeholder-zinc-400 dark:placeholder-zinc-500
-                  focus:outline-none focus:ring-2 focus:ring-zinc-500
+                  w-full px-4 py-3 rounded-xl text-lg font-medium
+                  premium-input
                   ${
                     errors.headline
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-zinc-300 dark:border-zinc-600'
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : ''
                   }
                 `}
               />
-              <div className="flex justify-between mt-1">
+              <div className="flex justify-between mt-2">
                 {errors.headline ? (
-                  <span className="text-xs text-red-500">{errors.headline}</span>
+                  <span className="text-xs text-red-500 font-medium">{errors.headline}</span>
                 ) : (
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     Catchy phrase or announcement
                   </span>
                 )}
                 <span
-                  className={`text-xs ${
-                    headline.length > MAX_HEADLINE_LENGTH
-                      ? 'text-red-500'
-                      : 'text-zinc-400'
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    headline.length > MAX_HEADLINE_LENGTH - 10
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      : 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
                   }`}
                 >
                   {headline.length}/{MAX_HEADLINE_LENGTH}
@@ -177,8 +181,9 @@ export function TextInputForm() {
             <div>
               <label
                 htmlFor="subtitle"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+                className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2"
               >
+                <SubtitleIcon className="w-4 h-4 text-pink-500" />
                 Subtitle (Product Name)
               </label>
               <input
@@ -189,31 +194,28 @@ export function TextInputForm() {
                 placeholder="THE ULTRA SOFT HOODIE"
                 maxLength={MAX_SUBTITLE_LENGTH}
                 className={`
-                  w-full px-4 py-3 rounded-lg border
-                  bg-white dark:bg-zinc-800
-                  text-zinc-900 dark:text-white
-                  placeholder-zinc-400 dark:placeholder-zinc-500
-                  focus:outline-none focus:ring-2 focus:ring-zinc-500
+                  w-full px-4 py-3 rounded-xl uppercase tracking-widest font-medium
+                  premium-input
                   ${
                     errors.subtitle
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-zinc-300 dark:border-zinc-600'
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : ''
                   }
                 `}
               />
-              <div className="flex justify-between mt-1">
+              <div className="flex justify-between mt-2">
                 {errors.subtitle ? (
-                  <span className="text-xs text-red-500">{errors.subtitle}</span>
+                  <span className="text-xs text-red-500 font-medium">{errors.subtitle}</span>
                 ) : (
-                  <span className="text-xs text-zinc-400">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     Will be displayed in uppercase
                   </span>
                 )}
                 <span
-                  className={`text-xs ${
-                    subtitle.length > MAX_SUBTITLE_LENGTH
-                      ? 'text-red-500'
-                      : 'text-zinc-400'
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    subtitle.length > MAX_SUBTITLE_LENGTH - 10
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      : 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'
                   }`}
                 >
                   {subtitle.length}/{MAX_SUBTITLE_LENGTH}
@@ -222,24 +224,28 @@ export function TextInputForm() {
             </div>
 
             {/* Suggestions */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                Suggestions
-              </h4>
+            <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 dark:from-violet-900/10 dark:to-pink-900/10 rounded-xl p-4 border border-violet-200/30 dark:border-violet-500/10">
+              <div className="flex items-center gap-2 mb-3">
+                <SparkleIcon className="w-4 h-4 text-violet-500" />
+                <h4 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                  Quick Suggestions
+                </h4>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {[
-                  'New colors just dropped',
-                  'Limited edition',
-                  'Back in stock',
-                  'Best seller',
+                  { text: 'New colors just dropped', icon: '🎨' },
+                  { text: 'Limited edition', icon: '✨' },
+                  { text: 'Back in stock', icon: '🔥' },
+                  { text: 'Best seller', icon: '⭐' },
                 ].map((suggestion) => (
                   <button
-                    key={suggestion}
+                    key={suggestion.text}
                     type="button"
-                    onClick={() => setHeadline(suggestion)}
-                    className="px-3 py-1 text-xs bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-600 transition-colors"
+                    onClick={() => setHeadline(suggestion.text)}
+                    className="premium-chip px-4 py-2 text-sm cursor-pointer"
                   >
-                    {suggestion}
+                    <span className="mr-1.5">{suggestion.icon}</span>
+                    {suggestion.text}
                   </button>
                 ))}
               </div>
@@ -247,13 +253,14 @@ export function TextInputForm() {
 
             {/* Action Buttons */}
             <div className="flex gap-4 pt-4">
-              <Button type="button" variant="outline" onClick={prevStep} fullWidth>
-                <ArrowLeftIcon className="w-4 h-4 mr-1" />
+              <Button type="button" variant="outline" onClick={prevStep} fullWidth className="group">
+                <ArrowLeftIcon className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                 Back
               </Button>
-              <Button type="submit" fullWidth>
+              <Button type="submit" fullWidth className="btn-gradient text-white border-0 group">
+                <SparkleIcon className="w-4 h-4 mr-2 animate-sparkle" />
                 Generate Final Creative
-                <ArrowRightIcon className="w-4 h-4 ml-1" />
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
           </form>
@@ -275,6 +282,38 @@ function ArrowRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+    </svg>
+  );
+}
+
+function TextIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+    </svg>
+  );
+}
+
+function HeadlineIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+    </svg>
+  );
+}
+
+function SubtitleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12H12m-8.25 5.25h16.5" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
     </svg>
   );
 }

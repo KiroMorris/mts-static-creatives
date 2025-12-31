@@ -51,6 +51,8 @@ export interface HeroStyleOptions {
   focusY?: number;  // Vertical focus point (0-100, 50 = center)
 }
 
+export type CalloutType = 'detail' | 'fit' | 'pose';
+
 export interface ComposeOptions {
   heroImageBuffer: Buffer;
   calloutBuffers: {
@@ -65,6 +67,7 @@ export interface ComposeOptions {
   heroStyle?: HeroStyleOptions;
   textStyle?: TextStyleOptions;
   calloutStyle?: CalloutStyleOptions;
+  calloutOrder?: [CalloutType, CalloutType, CalloutType];
 }
 
 export interface ComposeResult {
@@ -482,7 +485,7 @@ async function applyZoom(
  * @returns Buffer containing the final PNG image
  */
 export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
-  const { heroImageBuffer, calloutBuffers, text, heroStyle, textStyle, calloutStyle } = options;
+  const { heroImageBuffer, calloutBuffers, text, heroStyle, textStyle, calloutStyle, calloutOrder = ['detail', 'fit', 'pose'] } = options;
 
   // DEBUG: Log all received style options
   console.log('=== SHARP COMPOSE DEBUG ===');
@@ -521,10 +524,17 @@ export async function composeCollage(options: ComposeOptions): Promise<Buffer> {
   );
 
   // 2. Prepare all three callout images with rounded corners and per-callout zoom
+  // Use calloutOrder to determine the sequence
+  const zoomSettings: Record<CalloutType, CalloutZoomOptions> = {
+    detail: detailZoom,
+    fit: fitZoom,
+    pose: poseZoom
+  };
+
   const [callout1, callout2, callout3] = await Promise.all([
-    prepareCallout(calloutBuffers.detail, calloutStyle, detailZoom),
-    prepareCallout(calloutBuffers.fit, calloutStyle, fitZoom),
-    prepareCallout(calloutBuffers.pose, calloutStyle, poseZoom)
+    prepareCallout(calloutBuffers[calloutOrder[0]], calloutStyle, zoomSettings[calloutOrder[0]]),
+    prepareCallout(calloutBuffers[calloutOrder[1]], calloutStyle, zoomSettings[calloutOrder[1]]),
+    prepareCallout(calloutBuffers[calloutOrder[2]], calloutStyle, zoomSettings[calloutOrder[2]])
   ]);
 
   // 3. Create text overlay as SVG buffer with styles

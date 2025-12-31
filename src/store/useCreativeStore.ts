@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   CreativeStore,
-  CreativeState,
   Step,
   CalloutType,
   CalloutPrompt,
@@ -27,6 +26,7 @@ import {
 interface PersistedState {
   styleSettings: StyleSettings;
   selectedCallouts: [string, string, string];
+  calloutOrder: [CalloutType, CalloutType, CalloutType];
   customCalloutPrompts: CalloutPrompt[];
   headline: string;
   subtitle: string;
@@ -79,6 +79,7 @@ const devState = {
   // Callout prompts management
   calloutPrompts: DEFAULT_CALLOUT_PROMPTS,
   selectedCallouts: DEFAULT_SELECTED_CALLOUTS as [string, string, string],
+  calloutOrder: ['detail', 'fit', 'pose'] as [CalloutType, CalloutType, CalloutType],
   headline: 'COZY COMFORT',
   subtitle: 'NEW COLLECTION',
   finalCollage: null,
@@ -108,6 +109,7 @@ const productionState = {
   // Callout prompts management
   calloutPrompts: DEFAULT_CALLOUT_PROMPTS,
   selectedCallouts: DEFAULT_SELECTED_CALLOUTS as [string, string, string],
+  calloutOrder: ['detail', 'fit', 'pose'] as [CalloutType, CalloutType, CalloutType],
   headline: '',
   subtitle: '',
   finalCollage: null,
@@ -268,6 +270,10 @@ export const useCreativeStore = create<CreativeStore>()(
 
       setAllSelectedCallouts: (promptIds: [string, string, string]) =>
         set({ selectedCallouts: promptIds }),
+
+      // Callout order actions
+      reorderCallouts: (newOrder: [CalloutType, CalloutType, CalloutType]) =>
+        set({ calloutOrder: newOrder }),
     }),
     {
       name: 'acg-settings',
@@ -281,6 +287,9 @@ export const useCreativeStore = create<CreativeStore>()(
 
         // Callout selections
         selectedCallouts: state.selectedCallouts,
+
+        // Callout display order
+        calloutOrder: state.calloutOrder,
 
         // Custom callout prompts only (filter out built-in)
         customCalloutPrompts: state.calloutPrompts.filter((p) => !p.isBuiltIn),
@@ -327,6 +336,8 @@ export const useCreativeStore = create<CreativeStore>()(
             ),
             // Validated callout selections
             selectedCallouts: validatedCallouts,
+            // Callout display order with fallback
+            calloutOrder: persistedState.calloutOrder || ['detail', 'fit', 'pose'],
             // Merged callout prompts (built-in from code + custom from storage)
             calloutPrompts: mergedCalloutPrompts,
             // Text content with fallback to empty string

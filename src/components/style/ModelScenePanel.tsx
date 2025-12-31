@@ -92,30 +92,37 @@ interface SelectProps<T extends string> {
 
 function Select<T extends string>({ label, value, options, onChange }: SelectProps<T>) {
   return (
-    <div className="space-y-1">
-      <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+    <div className="space-y-2">
+      <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
         {label}
       </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as T)}
+          className="w-full px-4 py-2.5 text-sm rounded-xl premium-select appearance-none cursor-pointer pr-10"
+        >
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <ChevronDownIcon className="w-4 h-4 text-violet-500" />
+        </div>
+      </div>
     </div>
   );
 }
 
 function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-zinc-500 dark:text-zinc-400">{icon}</span>
-      <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+    <div className="flex items-center gap-3 mb-4 section-header-gradient">
+      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-pink-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+        {icon}
+      </span>
+      <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wide">
         {title}
       </h3>
     </div>
@@ -148,15 +155,15 @@ export function ModelScenePanel() {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
-          Model & Scene Settings
+        <h2 className="text-2xl font-bold mb-2">
+          <span className="gradient-text">Model & Scene Settings</span>
         </h2>
         <p className="text-zinc-600 dark:text-zinc-400">
           Choose a style template or customize with basic settings
         </p>
       </div>
 
-      <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-6 space-y-6">
+      <div className="glass-card rounded-2xl p-6 space-y-6 shadow-xl shadow-violet-500/5">
         {/* Hero Style Template Section - NEW */}
         <div>
           <SectionHeader title="Hero Style Template" icon={<FlashIcon />} />
@@ -175,23 +182,43 @@ export function ModelScenePanel() {
 
             {/* Template Preview */}
             {selectedTemplate && (
-              <div className="mt-3">
+              <div className="mt-4">
                 <button
                   type="button"
                   onClick={() => setShowTemplatePreview(!showTemplatePreview)}
-                  className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors font-medium"
                 >
-                  <ChevronIcon className={`w-4 h-4 transition-transform ${showTemplatePreview ? 'rotate-180' : ''}`} />
+                  <ChevronIcon className={`w-4 h-4 transition-transform duration-300 ${showTemplatePreview ? 'rotate-180' : ''}`} />
                   {showTemplatePreview ? 'Hide' : 'Show'} template details
                 </button>
 
                 {showTemplatePreview && (
-                  <div className="mt-2 p-3 rounded-lg bg-zinc-100 dark:bg-zinc-700/50 text-sm space-y-2">
-                    <div><strong className="text-zinc-700 dark:text-zinc-300">Pose:</strong> <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.subject.pose}</span></div>
-                    <div><strong className="text-zinc-700 dark:text-zinc-300">Camera:</strong> <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.camera.angle}, {selectedTemplate.camera.distance}</span></div>
-                    <div><strong className="text-zinc-700 dark:text-zinc-300">Lighting:</strong> <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.lighting.style}</span></div>
-                    <div><strong className="text-zinc-700 dark:text-zinc-300">Environment:</strong> <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.environment.background}</span></div>
-                    <div><strong className="text-zinc-700 dark:text-zinc-300">Aesthetic:</strong> <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.aesthetic.look}</span></div>
+                  <div className="mt-3 p-4 rounded-xl bg-gradient-to-br from-violet-50 to-pink-50 dark:from-violet-900/20 dark:to-pink-900/20 border border-violet-200/50 dark:border-violet-500/20 text-sm space-y-3 animate-slide-down">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-violet-500"></span>
+                      <strong className="text-zinc-700 dark:text-zinc-300">Pose:</strong>
+                      <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.subject.pose}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                      <strong className="text-zinc-700 dark:text-zinc-300">Camera:</strong>
+                      <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.camera.angle}, {selectedTemplate.camera.distance}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                      <strong className="text-zinc-700 dark:text-zinc-300">Lighting:</strong>
+                      <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.lighting.style}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <strong className="text-zinc-700 dark:text-zinc-300">Environment:</strong>
+                      <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.environment.background}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      <strong className="text-zinc-700 dark:text-zinc-300">Aesthetic:</strong>
+                      <span className="text-zinc-600 dark:text-zinc-400">{selectedTemplate.aesthetic.look}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -200,7 +227,7 @@ export function ModelScenePanel() {
         </div>
 
         {/* Model Section */}
-        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+        <div className="pt-6 mt-2 border-t border-violet-200/30 dark:border-violet-500/10">
           <SectionHeader title="Model" icon={<UserIcon />} />
           <div className="grid grid-cols-3 gap-4">
             <Select
@@ -225,7 +252,7 @@ export function ModelScenePanel() {
         </div>
 
         {/* Composition Section - Copy Space */}
-        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+        <div className="pt-6 mt-2 border-t border-violet-200/30 dark:border-violet-500/10">
           <SectionHeader title="Composition" icon={<FrameIcon />} />
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
             Where to leave empty space for text and callout overlays
@@ -245,7 +272,7 @@ export function ModelScenePanel() {
 
         {/* Scene Section - Only show when NOT using template */}
         {!usingTemplate && (
-          <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+          <div className="pt-6 mt-2 border-t border-violet-200/30 dark:border-violet-500/10">
             <SectionHeader title="Scene & Style" icon={<SunIcon />} />
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
               Basic settings (ignored when using a template above)
@@ -280,7 +307,7 @@ export function ModelScenePanel() {
         )}
 
         {/* Custom Prompt Addition - NEW */}
-        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
+        <div className="pt-6 mt-2 border-t border-violet-200/30 dark:border-violet-500/10">
           <SectionHeader title="Custom Additions" icon={<PencilIcon />} />
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
             Add specific details like props, expressions, or actions (optional)
@@ -290,23 +317,33 @@ export function ModelScenePanel() {
             onChange={(e) => setModelSceneStyle({ customPromptAddition: e.target.value })}
             placeholder="e.g., holding a coffee cup, wind in hair, hands in pockets, looking away from camera..."
             rows={3}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 resize-none"
+            className="w-full px-4 py-3 text-sm rounded-xl premium-input resize-none"
           />
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            {modelScene.customPromptAddition.length} / 500 characters
-          </p>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Add creative direction for AI
+            </p>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              modelScene.customPromptAddition.length > 400
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                : 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400'
+            }`}>
+              {modelScene.customPromptAddition.length} / 500
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="flex justify-center gap-4 mt-8">
-        <Button variant="outline" onClick={prevStep}>
-          <ArrowLeftIcon className="w-4 h-4 mr-1" />
+        <Button variant="outline" onClick={prevStep} className="group">
+          <ArrowLeftIcon className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back
         </Button>
-        <Button onClick={nextStep}>
+        <Button onClick={nextStep} className="btn-gradient text-white border-0 group">
+          <SparklesIcon className="w-4 h-4 mr-2 animate-sparkle" />
           Generate Hero
-          <ArrowRightIcon className="w-4 h-4 ml-1" />
+          <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
         </Button>
       </div>
     </div>
@@ -377,6 +414,22 @@ function ArrowRightIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function SparklesIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
     </svg>
   );
 }

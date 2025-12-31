@@ -6,7 +6,7 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import type { TextStyle, CalloutStyle, CalloutImages, HeroStyle, CalloutZoomSettings } from '@/types';
+import type { TextStyle, CalloutStyle, CalloutImages, HeroStyle, CalloutZoomSettings, CalloutType } from '@/types';
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
@@ -36,6 +36,9 @@ interface LivePreviewProps {
   heroStyle: HeroStyle;
   textStyle: TextStyle;
   calloutStyle: CalloutStyle;
+
+  // Callout display order
+  calloutOrder?: [CalloutType, CalloutType, CalloutType];
 
   // Optional display settings
   maxHeight?: number;
@@ -319,41 +322,34 @@ function CalloutImage({
 /**
  * Callout stack layer - 3 vertically stacked callout images
  * Uses direct X/Y positioning from calloutStyle
+ * Respects calloutOrder for display sequence
  */
 function CalloutLayer({
   calloutImages,
   calloutStyle,
+  calloutOrder = ['detail', 'fit', 'pose'],
 }: {
   calloutImages: CalloutImages;
   calloutStyle: CalloutStyle;
+  calloutOrder?: [CalloutType, CalloutType, CalloutType];
 }) {
   // Use direct X from style
   const calloutX = calloutStyle.x;
   const [callout1Y, callout2Y, callout3Y] = calculateCalloutYPositions(calloutStyle);
+  const yPositions = [callout1Y, callout2Y, callout3Y];
 
   return (
     <div className="absolute inset-0 pointer-events-none">
-      <CalloutImage
-        src={calloutImages.detail}
-        style={calloutStyle}
-        zoomSettings={calloutStyle.detail}
-        top={callout1Y}
-        left={calloutX}
-      />
-      <CalloutImage
-        src={calloutImages.fit}
-        style={calloutStyle}
-        zoomSettings={calloutStyle.fit}
-        top={callout2Y}
-        left={calloutX}
-      />
-      <CalloutImage
-        src={calloutImages.pose}
-        style={calloutStyle}
-        zoomSettings={calloutStyle.pose}
-        top={callout3Y}
-        left={calloutX}
-      />
+      {calloutOrder.map((type, index) => (
+        <CalloutImage
+          key={type}
+          src={calloutImages[type]}
+          style={calloutStyle}
+          zoomSettings={calloutStyle[type]}
+          top={yPositions[index]}
+          left={calloutX}
+        />
+      ))}
     </div>
   );
 }
@@ -380,6 +376,7 @@ export function LivePreview({
   heroStyle,
   textStyle,
   calloutStyle,
+  calloutOrder = ['detail', 'fit', 'pose'],
   maxHeight,
   showBorder = true,
   className = '',
@@ -454,6 +451,7 @@ export function LivePreview({
             <CalloutLayer
               calloutImages={calloutImages}
               calloutStyle={calloutStyle}
+              calloutOrder={calloutOrder}
             />
           </div>
         )}

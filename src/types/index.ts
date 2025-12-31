@@ -274,6 +274,9 @@ export interface CreativeState {
   // Callout selection for generation (array of 3 promptIds for slots 0,1,2)
   selectedCallouts: [string, string, string];
 
+  // Callout display order (which callout type appears first, second, third)
+  calloutOrder: [CalloutType, CalloutType, CalloutType];
+
   // Text content
   headline: string;
   subtitle: string;
@@ -322,6 +325,9 @@ export interface CreativeActions {
   // Callout selection actions
   setSelectedCallout: (slotIndex: 0 | 1 | 2, promptId: string) => void;
   setAllSelectedCallouts: (promptIds: [string, string, string]) => void;
+
+  // Callout order actions
+  reorderCallouts: (newOrder: [CalloutType, CalloutType, CalloutType]) => void;
 }
 
 export type CreativeStore = CreativeState & CreativeActions;

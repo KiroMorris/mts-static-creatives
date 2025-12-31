@@ -14,6 +14,7 @@ export function CollagePreview() {
     headline,
     subtitle,
     styleSettings,
+    calloutOrder,
     finalCollage,
     setFinalCollage,
     isComposing,
@@ -59,6 +60,7 @@ export function CollagePreview() {
           heroStyle: styleSettings.hero,
           textStyle: styleSettings.text,
           calloutStyle: styleSettings.callout,
+          calloutOrder,
         }),
       });
 
@@ -73,7 +75,7 @@ export function CollagePreview() {
       const data = await response.json();
       setFinalCollage(data.data.collageUrl);
       // Track what styles were used for this composition
-      setLastComposedStyles(JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout }));
+      setLastComposedStyles(JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout, calloutOrder }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to compose collage';
       setError(message);
@@ -89,7 +91,7 @@ export function CollagePreview() {
       return;
     }
 
-    const currentStyles = JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout });
+    const currentStyles = JSON.stringify({ hero: styleSettings.hero, text: styleSettings.text, callout: styleSettings.callout, calloutOrder });
 
     // Compose if: no collage yet OR styles changed since last composition
     if (!finalCollage || lastComposedStyles !== currentStyles) {
