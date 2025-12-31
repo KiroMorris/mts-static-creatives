@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { LivePreview } from '@/components/preview/LivePreview';
 import { useCreativeStore } from '@/store/useCreativeStore';
+import { FontSelector } from '@/components/ui/FontSelector';
+import type { FontFamily, FontWeight } from '@/types';
 
 // ============================================================================
 // Sub-Components
@@ -232,6 +234,13 @@ export function StyleControlPanel() {
           <div className="space-y-6">
             <SectionHeader title="Headline" icon={<TextIcon />} />
             <div className="space-y-4">
+              <FontSelector
+                type="headline"
+                selectedFont={text.headlineFontFamily}
+                selectedWeight={text.headlineFontWeight}
+                onFontChange={(font: FontFamily) => setTextStyle({ headlineFontFamily: font })}
+                onWeightChange={(weight: FontWeight) => setTextStyle({ headlineFontWeight: weight })}
+              />
               <Slider
                 label="Font Size"
                 value={text.headlineFontSize}
@@ -280,6 +289,13 @@ export function StyleControlPanel() {
             <div className="border-t border-zinc-200 dark:border-zinc-700 pt-6">
               <SectionHeader title="Subtitle" icon={<TextIcon />} />
               <div className="space-y-4">
+                <FontSelector
+                  type="subtitle"
+                  selectedFont={text.subtitleFontFamily}
+                  selectedWeight={text.subtitleFontWeight}
+                  onFontChange={(font: FontFamily) => setTextStyle({ subtitleFontFamily: font })}
+                  onWeightChange={(weight: FontWeight) => setTextStyle({ subtitleFontWeight: weight })}
+                />
                 <Slider
                   label="Font Size"
                   value={text.subtitleFontSize}

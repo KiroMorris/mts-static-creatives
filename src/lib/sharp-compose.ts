@@ -14,10 +14,14 @@ export interface TextStyleOptions {
   headlineShadow?: boolean;
   headlineX?: number;           // Direct X position (0-1080)
   headlineY?: number;           // Direct Y position (0-1920)
+  headlineFontFamily?: string;  // Font family name (e.g., 'Inter', 'Playfair Display')
+  headlineFontWeight?: number;  // Font weight (400, 500, 700)
   subtitleFontSize?: number;
   subtitleColor?: string;
   subtitleLetterSpacing?: number;
   subtitleGap?: number;         // Gap between headline and subtitle
+  subtitleFontFamily?: string;  // Font family name
+  subtitleFontWeight?: number;  // Font weight
 }
 
 // Per-callout zoom settings
@@ -154,10 +158,18 @@ export function createTextSVG(
   const fontSize = style?.headlineFontSize || HEADLINE_FONT_SIZE;
   const headlineColor = style?.headlineColor || 'white';
   const showShadow = style?.headlineShadow !== false; // default true
+  const headlineFontFamily = style?.headlineFontFamily || 'Inter';
+  const headlineFontWeight = style?.headlineFontWeight || 700;
   const subtitleFontSize = style?.subtitleFontSize || SUBTITLE_FONT_SIZE;
   const subtitleColor = style?.subtitleColor || 'rgba(255,255,255,0.9)';
   const subtitleLetterSpacing = style?.subtitleLetterSpacing || SUBTITLE_LETTER_SPACING;
   const subtitleGap = style?.subtitleGap ?? SUBTITLE_Y_OFFSET;
+  const subtitleFontFamily = style?.subtitleFontFamily || 'Inter';
+  const subtitleFontWeight = style?.subtitleFontWeight || 500;
+
+  // Build font-family strings with fallbacks for SVG rendering
+  const headlineFontStack = `${headlineFontFamily}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`;
+  const subtitleFontStack = `${subtitleFontFamily}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`;
 
   // Use direct X/Y positioning from style, or fallback to defaults
   // Round to ensure integer coordinates for consistent rendering
@@ -190,9 +202,9 @@ export function createTextSVG(
     <text
       x="${baseX}"
       y="${baseY + headlineAscenderOffset + (i * lineHeight)}"
-      font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      font-family="${headlineFontStack}"
       font-size="${fontSize}"
-      font-weight="700"
+      font-weight="${headlineFontWeight}"
       fill="${headlineColor}"
       letter-spacing="-0.02em"
     >${escapeXml(line)}</text>
@@ -203,9 +215,9 @@ export function createTextSVG(
     <text
       x="${baseX}"
       y="${baseY + headlineAscenderOffset + (i * lineHeight)}"
-      font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+      font-family="${headlineFontStack}"
       font-size="${fontSize}"
-      font-weight="700"
+      font-weight="${headlineFontWeight}"
       fill="rgba(0,0,0,0.3)"
       letter-spacing="-0.02em"
       filter="url(#shadow)"
@@ -236,9 +248,9 @@ export function createTextSVG(
   <text
     x="${baseX}"
     y="${subtitleTopY + subtitleAscenderOffset}"
-    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+    font-family="${subtitleFontStack}"
     font-size="${subtitleFontSize}"
-    font-weight="500"
+    font-weight="${subtitleFontWeight}"
     letter-spacing="${subtitleLetterSpacing}px"
     fill="${subtitleColor}"
   >${escapeXml(subtitle.toUpperCase())}</text>

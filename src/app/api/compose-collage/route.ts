@@ -39,10 +39,14 @@ interface ComposeCollageRequest {
     headlineShadow: boolean;
     headlineX: number;
     headlineY: number;
+    headlineFontFamily: string;
+    headlineFontWeight: number;
     subtitleFontSize: number;
     subtitleColor: string;
     subtitleLetterSpacing: number;
     subtitleGap: number;
+    subtitleFontFamily: string;
+    subtitleFontWeight: number;
   };
   calloutStyle?: {
     size: number;

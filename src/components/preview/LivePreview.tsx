@@ -17,6 +17,7 @@ import {
   getTextShadowCSS,
   calculateLineHeight,
 } from '@/lib/preview-utils';
+import { getFontFamilyCSS } from '@/lib/font-config';
 
 // ============================================================================
 // Types
@@ -169,9 +170,9 @@ function TextLayer({
             position: 'absolute',
             left: headlineX,
             top: headlineY + (index * lineHeight),
-            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+            fontFamily: getFontFamilyCSS(textStyle.headlineFontFamily),
             fontSize: textStyle.headlineFontSize,
-            fontWeight: 700,
+            fontWeight: textStyle.headlineFontWeight,
             color: textStyle.headlineColor,
             letterSpacing: '-0.02em',
             textShadow,
@@ -188,9 +189,9 @@ function TextLayer({
           position: 'absolute',
           left: headlineX,
           top: subtitleY,
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+          fontFamily: getFontFamilyCSS(textStyle.subtitleFontFamily),
           fontSize: textStyle.subtitleFontSize,
-          fontWeight: 500,
+          fontWeight: textStyle.subtitleFontWeight,
           color: textStyle.subtitleColor,
           letterSpacing: `${textStyle.subtitleLetterSpacing}px`,
           textTransform: 'uppercase',

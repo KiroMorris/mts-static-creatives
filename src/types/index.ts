@@ -5,6 +5,31 @@ export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7; // 7 steps: Upload, Model/Scene, H
 export type CalloutType = 'detail' | 'fit' | 'pose';
 
 // ============================================================================
+// Font Types
+// ============================================================================
+
+export type FontFamily =
+  | 'Inter'
+  | 'Playfair Display'
+  | 'Montserrat'
+  | 'Oswald'
+  | 'Bebas Neue'
+  | 'Poppins'
+  | 'Roboto Condensed'
+  | 'Lato'
+  | 'Open Sans';
+
+export type FontWeight = 400 | 500 | 700;
+
+export interface FontOption {
+  id: FontFamily;
+  name: string;
+  category: 'display' | 'body' | 'both';
+  weights: FontWeight[];
+  preview: string;
+}
+
+// ============================================================================
 // Callout Prompt Types (Prompt Control Feature)
 // ============================================================================
 
@@ -68,10 +93,14 @@ export interface TextStyle {
   headlineShadow: boolean;
   headlineX: number;        // X position (0-1080)
   headlineY: number;        // Y position (0-1920)
+  headlineFontFamily: FontFamily;
+  headlineFontWeight: FontWeight;
   subtitleFontSize: number;
   subtitleColor: string;
   subtitleLetterSpacing: number;
   subtitleGap: number;      // Gap between headline and subtitle
+  subtitleFontFamily: FontFamily;
+  subtitleFontWeight: FontWeight;
 }
 
 // Individual callout zoom/focus settings
@@ -129,10 +158,14 @@ export const DEFAULT_STYLE_SETTINGS: StyleSettings = {
     headlineShadow: true,
     headlineX: 48,
     headlineY: 820,
+    headlineFontFamily: 'Inter',
+    headlineFontWeight: 700,
     subtitleFontSize: 18,
     subtitleColor: 'rgba(255, 255, 255, 0.9)',
     subtitleLetterSpacing: 3,
     subtitleGap: 20,
+    subtitleFontFamily: 'Inter',
+    subtitleFontWeight: 500,
   },
   callout: {
     size: 200,
