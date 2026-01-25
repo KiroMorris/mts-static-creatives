@@ -1,7 +1,25 @@
 {
   "name": "apparel-creative-generator",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.18.0",
+  "description": "MTS Static Creative Studio - AI-powered social media ad creative generator for apparel brands",
+  "author": {
+    "name": "Kiro Morris",
+    "url": "https://myturtle.store"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/apparel-creative-generator"
+  },
+  "keywords": [
+    "apparel",
+    "ai",
+    "creative-generator",
+    "social-media",
+    "ecommerce",
+    "nextjs"
+  ],
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -24,6 +42,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "form-data": "^4.0.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

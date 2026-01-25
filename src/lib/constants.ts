@@ -60,6 +60,7 @@ export const UPLOAD = {
 export const API = {
   upload: '/api/upload',
   generateHero: '/api/generate-hero',
+  generateBackground: '/api/generate-background',
   generateCallouts: '/api/generate-callouts',
   regenerateCallout: '/api/regenerate-callout',
   composeCollage: '/api/compose-collage',

@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Apparel Creative Generator",
-  description: "Generate stunning social media creatives for your apparel brand using AI",
+  title: "MTS Static Creative Studio | AI-Powered Apparel Creatives",
+  description: "Generate stunning social media creatives for your apparel brand using AI. By Kiro Morris @ myturtle.store",
 };
 
 export default function RootLayout({

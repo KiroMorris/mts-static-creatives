@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { nanoid } from 'nanoid';
 import type {
   CreativeStore,
   Step,
@@ -17,6 +18,53 @@ import {
   DEFAULT_SELECTED_CALLOUTS,
   generateCalloutPromptId,
 } from '@/lib/defaultCalloutPrompts';
+import type { CanvasElement } from '@/types/elements';
+import type { ElementsState, ElementsActions } from './elementsSlice';
+import type { BrandState, BrandActions } from './brandSlice';
+import { DEFAULT_BRAND } from './brandSlice';
+
+// ============================================================================
+// Canvas Slice imports for V2 Canvas & Layout System
+// ============================================================================
+import {
+  createCanvasSlice,
+  type CanvasSlice,
+  type CanvasSliceState,
+  type CanvasSliceActions,
+  selectCanvasDimensions,
+  selectSelectedElement,
+  selectVisibleElementsSorted,
+  selectCanUndo,
+  selectCanRedo,
+} from './canvasSlice';
+import type {
+  AspectRatioId,
+  CanvasBackground,
+  AnyCanvasElement,
+  SnapConfig,
+  CanvasViewport,
+} from '@/types/canvas';
+import {
+  DEFAULT_BACKGROUND,
+  DEFAULT_SNAP_CONFIG,
+  DEFAULT_VIEWPORT,
+} from '@/types/canvas';
+
+// Re-export canvas slice selectors for use in components
+export {
+  selectCanvasDimensions,
+  selectSelectedElement,
+  selectVisibleElementsSorted,
+  selectCanUndo,
+  selectCanRedo,
+};
+
+// Re-export canvas types for convenience
+export type {
+  CanvasSlice,
+  CanvasSliceState,
+  CanvasSliceActions,
+};
 
 // ============================================================================
 // Persistence Types & Utilities
@@ -30,7 +78,20 @@ interface PersistedState {
   customCalloutPrompts: CalloutPrompt[];
   headline: string;
   subtitle: string;
+  // V2: Elements & Brand
+  elements: CanvasElement[];
+  brand: BrandState;
+  // V2: Canvas state (partial - only user settings, not history)
+  canvasAspectRatio: AspectRatioId;
+  canvasBackground: CanvasBackground;
+  snapConfig: SnapConfig;
 }
+
+// ============================================================================
+// Combined Store Type (includes V2 slices)
+// ============================================================================
+
+export type CombinedStore = CreativeStore & ElementsState & ElementsActions & BrandState & BrandActions & CanvasSlice;
 
 /**
  * Deep merge utility for style settings.
@@ -88,6 +149,12 @@ const devState = {
   isGeneratingCallouts: false,
   isComposing: false,
   error: null,
+  // V2: Elements state
+  elements: [] as CanvasElement[],
+  selectedElementId: null as string | null,
+  clipboard: null as CanvasElement | null,
+  // V2: Brand state
+  ...DEFAULT_BRAND,
 };
 
 const productionState = {
@@ -118,6 +185,12 @@ const productionState = {
   isGeneratingCallouts: false,
   isComposing: false,
   error: null,
+  // V2: Elements state
+  elements: [] as CanvasElement[],
+  selectedElementId: null as string | null,
+  clipboard: null as CanvasElement | null,
+  // V2: Brand state
+  ...DEFAULT_BRAND,
 };
 
 const initialState = DEV_MODE ? devState : productionState;
@@ -126,10 +199,15 @@ const initialState = DEV_MODE ? devState : productionState;
 // Store with Persist Middleware
 // ============================================================================
 
-export const useCreativeStore = create<CreativeStore>()(
+export const useCreativeStore = create<CombinedStore>()(
   persist(
-    (set) => ({
+    (set, get, store) => ({
       ...initialState,
+
+      // ========================================================================
+      // V2: Canvas Slice (merged using createCanvasSlice)
+      // ========================================================================
+      ...createCanvasSlice(set, get, store),
 
       setProductImage: (url: string, file: File) =>
         set({ productImage: url, productImageFile: file, error: null }),
@@ -274,10 +352,228 @@ export const useCreativeStore = create<CreativeStore>()(
       // Callout order actions
       reorderCallouts: (newOrder: [CalloutType, CalloutType, CalloutType]) =>
         set({ calloutOrder: newOrder }),
+
+      // ========================================================================
+      // V2: Elements Actions
+      // ========================================================================
+
+      // CRUD
+      addElement: (element) => {
+        const id = nanoid();
+        const maxZIndex = Math.max(0, ...get().elements.map((e) => e.zIndex));
+        const newElement = {
+          ...element,
+          id,
+          zIndex: maxZIndex + 1,
+        } as CanvasElement;
+        set((state) => ({
+          elements: [...state.elements, newElement],
+          selectedElementId: id,
+        }));
+        return id;
+      },
+
+      updateElement: (id, updates) => {
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, ...updates } as CanvasElement : el
+          ),
+        }));
+      },
+
+      deleteElement: (id) => {
+        set((state) => ({
+          elements: state.elements.filter((el) => el.id !== id),
+          selectedElementId:
+            state.selectedElementId === id ? null : state.selectedElementId,
+        }));
+      },
+
+      duplicateElement: (id) => {
+        const element = get().elements.find((el) => el.id === id);
+        if (!element) return '';
+        const newId = nanoid();
+        const maxZIndex = Math.max(0, ...get().elements.map((e) => e.zIndex));
+        const duplicatedElement = {
+          ...element,
+          id: newId,
+          zIndex: maxZIndex + 1,
+          position: {
+            x: element.position.x + 20,
+            y: element.position.y + 20,
+          },
+        } as CanvasElement;
+        set((state) => ({
+          elements: [...state.elements, duplicatedElement],
+          selectedElementId: newId,
+        }));
+        return newId;
+      },
+
+      // Selection
+      selectElement: (id) => set({ selectedElementId: id }),
+
+      getSelectedOverlayElement: () => {
+        const { elements, selectedElementId } = get();
+        return elements.find((el) => el.id === selectedElementId) || null;
+      },
+
+      // Z-Index Ordering
+      bringToFront: (id) => {
+        const maxZIndex = Math.max(0, ...get().elements.map((e) => e.zIndex));
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, zIndex: maxZIndex + 1 } : el
+          ),
+        }));
+      },
+
+      sendToBack: (id) => {
+        const minZIndex = Math.min(...get().elements.map((e) => e.zIndex));
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, zIndex: minZIndex - 1 } : el
+          ),
+        }));
+      },
+
+      moveUp: (id) => {
+        const elements = get().elements;
+        const element = elements.find((el) => el.id === id);
+        if (!element) return;
+        const above = elements
+          .filter((el) => el.zIndex > element.zIndex)
+          .sort((a, b) => a.zIndex - b.zIndex)[0];
+        if (above) {
+          set((state) => ({
+            elements: state.elements.map((el) => {
+              if (el.id === id) return { ...el, zIndex: above.zIndex };
+              if (el.id === above.id) return { ...el, zIndex: element.zIndex };
+              return el;
+            }),
+          }));
+        }
+      },
+
+      moveDown: (id) => {
+        const elements = get().elements;
+        const element = elements.find((el) => el.id === id);
+        if (!element) return;
+        const below = elements
+          .filter((el) => el.zIndex < element.zIndex)
+          .sort((a, b) => b.zIndex - a.zIndex)[0];
+        if (below) {
+          set((state) => ({
+            elements: state.elements.map((el) => {
+              if (el.id === id) return { ...el, zIndex: below.zIndex };
+              if (el.id === below.id) return { ...el, zIndex: element.zIndex };
+              return el;
+            }),
+          }));
+        }
+      },
+
+      // Clipboard
+      copyElement: (id) => {
+        const element = get().elements.find((el) => el.id === id);
+        if (element) {
+          set({ clipboard: { ...element } });
+        }
+      },
+
+      pasteElement: () => {
+        const clipboard = get().clipboard;
+        if (!clipboard) return null;
+        const { id, ...elementWithoutId } = clipboard;
+        return get().addElement({
+          ...elementWithoutId,
+          position: {
+            x: clipboard.position.x + 20,
+            y: clipboard.position.y + 20,
+          },
+        });
+      },
+
+      // Toggle & Lock
+      toggleElement: (id) => {
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, enabled: !el.enabled } : el
+          ),
+        }));
+      },
+
+      lockElement: (id) => {
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, locked: true } : el
+          ),
+        }));
+      },
+
+      unlockElement: (id) => {
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, locked: false } : el
+          ),
+        }));
+      },
+
+      toggleLockElement: (id) => {
+        set((state) => ({
+          elements: state.elements.map((el) =>
+            el.id === id ? { ...el, locked: !el.locked } : el
+          ),
+        }));
+      },
+
+      // Bulk Operations
+      clearElements: () => set({ elements: [], selectedElementId: null }),
+
+      setElements: (elements) => set({ elements, selectedElementId: null }),
+
+      getSortedElements: () => {
+        return [...get().elements]
+          .filter((el) => el.enabled)
+          .sort((a, b) => a.zIndex - b.zIndex);
+      },
+
+      // ========================================================================
+      // V2: Brand Actions
+      // ========================================================================
+
+      setLogo: (url) => set({ logo: url }),
+
+      setPrimaryColor: (color) => set({ primaryColor: color }),
+
+      setSecondaryColor: (color) => set({ secondaryColor: color }),
+
+      setAccentColor: (color) => set({ accentColor: color }),
+
+      setColors: (colors) =>
+        set((state) => ({
+          ...(colors.primary && { primaryColor: colors.primary }),
+          ...(colors.secondary && { secondaryColor: colors.secondary }),
+          ...(colors.accent && { accentColor: colors.accent }),
+        })),
+
+      setFontPrimary: (font) => set({ fontPrimary: font }),
+
+      setFontSecondary: (font) => set({ fontSecondary: font }),
+
+      setFonts: (fonts) =>
+        set((state) => ({
+          ...(fonts.primary && { fontPrimary: fonts.primary }),
+          ...(fonts.secondary && { fontSecondary: fonts.secondary }),
+        })),
+
+      setBrandAssets: (assets) => set((state) => ({ ...state, ...assets })),
+
+      resetBrandAssets: () => set(DEFAULT_BRAND),
     }),
     {
       name: 'acg-settings',
-      version: 1,
+      version: 2, // Bumped version for canvas slice addition
       storage: createJSONStorage(() => localStorage),
 
       // Only persist specific fields (exclude generated content, loading states, etc.)
@@ -297,6 +593,24 @@ export const useCreativeStore = create<CreativeStore>()(
         // Text content
         headline: state.headline,
         subtitle: state.subtitle,
+
+        // V2: Elements (persist all elements for template saving)
+        elements: state.elements,
+
+        // V2: Brand assets
+        brand: {
+          logo: state.logo,
+          primaryColor: state.primaryColor,
+          secondaryColor: state.secondaryColor,
+          accentColor: state.accentColor,
+          fontPrimary: state.fontPrimary,
+          fontSecondary: state.fontSecondary,
+        },
+
+        // V2: Canvas state (from new canvas slice)
+        canvasAspectRatio: state.canvasAspectRatio,
+        canvasBackground: state.canvasBackground,
+        snapConfig: state.snapConfig,
       }),
 
       // Custom merge function to restore state with defaults
@@ -327,6 +641,12 @@ export const useCreativeStore = create<CreativeStore>()(
             }
           ) as [string, string, string];
 
+          // Merge brand assets with defaults
+          const mergedBrand = {
+            ...DEFAULT_BRAND,
+            ...persistedState.brand,
+          };
+
           return {
             ...current,
             // Deep merge style settings with defaults
@@ -343,6 +663,21 @@ export const useCreativeStore = create<CreativeStore>()(
             // Text content with fallback to empty string
             headline: persistedState.headline ?? '',
             subtitle: persistedState.subtitle ?? '',
+            // V2: Restore elements (empty array if none persisted)
+            elements: persistedState.elements || [],
+            // V2: Restore brand assets (spread into top-level state)
+            logo: mergedBrand.logo,
+            primaryColor: mergedBrand.primaryColor,
+            secondaryColor: mergedBrand.secondaryColor,
+            accentColor: mergedBrand.accentColor,
+            fontPrimary: mergedBrand.fontPrimary,
+            fontSecondary: mergedBrand.fontSecondary,
+            // V2: Canvas state with defaults
+            canvasAspectRatio: persistedState.canvasAspectRatio || '9:16',
+            canvasBackground: persistedState.canvasBackground || DEFAULT_BACKGROUND,
+            snapConfig: persistedState.snapConfig
+              ? { ...DEFAULT_SNAP_CONFIG, ...persistedState.snapConfig }
+              : DEFAULT_SNAP_CONFIG,
           };
         } catch (error) {
           console.warn('Failed to restore settings, using defaults:', error);

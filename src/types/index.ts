@@ -381,3 +381,91 @@ export interface PresetActions {
 }
 
 export type PresetStore = PresetState & PresetActions;
+
+// ============================================================================
+// Template Types Re-export
+// ============================================================================
+
+export * from './templates';
+
+// ============================================================================
+// V2 Canvas & Elements Types Re-export
+// Note: These modules have their own Position, Size, etc. that may conflict
+// with templates. Import directly from these modules when using V2 system.
+// ============================================================================
+
+// Re-export elements types with explicit naming to avoid conflicts
+export type {
+  ElementType as V2ElementType,
+  BaseElement,
+  TextElement as V2TextElement,
+  CTAButtonElement,
+  BadgeElement,
+  BadgePreset,
+  PriceTagElement,
+  PriceTagLayout,
+  ShapeElement as V2ShapeElement,
+  ShapeType,
+  LogoElement,
+  LogoFit,
+  CanvasElement as V2CanvasElement,
+  TextShadow,
+  BoxShadow,
+  TextBackground,
+  Position as ElementPosition,
+  Size as ElementSize,
+} from './elements';
+
+export {
+  BADGE_PRESETS,
+  isTextElement,
+  isCTAButtonElement,
+  isBadgeElement,
+  isPriceTagElement,
+  isShapeElement,
+  isLogoElement,
+} from './elements';
+
+// Re-export canvas types with explicit naming to avoid conflicts
+export type {
+  AspectRatioId,
+  AspectRatioConfig as V2AspectRatioConfig,
+  Position as CanvasPosition,
+  Size as CanvasSize,
+  Bounds,
+  ElementType as CanvasElementType,
+  CanvasElement as CanvasCanvasElement,
+  HeroElement,
+  TextElement as CanvasTextElement,
+  CalloutElement,
+  ShapeElement as CanvasShapeElement,
+  ImageElement,
+  AnyCanvasElement,
+  ResizeHandle,
+  ResizeConstraints,
+  SnapConfig as CanvasSnapConfig,
+  LayerInfo,
+  LayerOperation,
+  BackgroundType,
+  SolidBackground,
+  GradientStop,
+  GradientBackground,
+  ImageBackground,
+  CanvasBackground,
+  CanvasConfig as V2CanvasConfig,
+  AlignmentGuide,
+  SnapResult,
+  CanvasHistoryEntry,
+  CanvasViewport,
+  ExportOptions,
+} from './canvas';
+
+export {
+  ASPECT_RATIOS,
+  DEFAULT_RESIZE_CONSTRAINTS,
+  DEFAULT_SNAP_CONFIG,
+  DEFAULT_BACKGROUND,
+  DEFAULT_CANVAS_CONFIG,
+  DEFAULT_VIEWPORT,
+  DEFAULT_EXPORT_OPTIONS,
+} from './canvas';

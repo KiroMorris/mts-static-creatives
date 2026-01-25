@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCreativeStore } from '@/store/useCreativeStore';
 import { ProgressSteps } from '@/components/ui/ProgressSteps';
 import { ProductUploader } from '@/components/upload/ProductUploader';
@@ -11,12 +11,32 @@ import { CalloutGrid } from '@/components/preview/CalloutGrid';
 import { TextInputForm } from '@/components/text/TextInputForm';
 import { CollagePreview } from '@/components/collage/CollagePreview';
 import { PresetSelector, SavePresetModal, PresetManager } from '@/components/preset';
+import { SetupModal } from '@/components/setup/SetupModal';
 import type { Step } from '@/types';
 
 export default function Home() {
   const { currentStep, goToStep, reset } = useCreativeStore();
   const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
+
+  // Check if API key is configured on mount
+  useEffect(() => {
+    async function checkSetup() {
+      try {
+        const response = await fetch('/api/setup');
+        const data = await response.json();
+        setShowSetup(!data.configured);
+      } catch (error) {
+        // If check fails, assume not configured
+        setShowSetup(true);
+      } finally {
+        setCheckingSetup(false);
+      }
+    }
+    checkSetup();
+  }, []);
 
   // Render the current step's component
   // Steps: 1=Upload, 2=Model/Scene, 3=Hero, 4=Callouts, 5=Text, 6=Layout, 7=Export
@@ -48,8 +68,23 @@ export default function Home() {
     }
   };
 
+  // Show loading while checking setup
+  if (checkingSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-zinc-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative overflow-x-hidden">
+      {/* Setup Modal - Shows when API key not configured */}
+      {showSetup && <SetupModal onComplete={() => setShowSetup(false)} />}
+
       {/* Animated background gradient orbs - More vibrant and dynamic */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Primary violet orb - larger and more prominent */}
@@ -75,15 +110,15 @@ export default function Home() {
                 {/* Animated glow ring */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 via-pink-500 to-cyan-500 rounded-2xl blur-md opacity-60 group-hover:opacity-100 transition-opacity duration-500 animate-gradient" style={{ backgroundSize: '200% 200%' }} />
                 <div className="relative w-12 h-12 bg-gradient-to-br from-violet-500 via-pink-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-xl shadow-violet-500/30 group-hover:shadow-violet-500/50 transition-shadow duration-300">
-                  <SparklesIcon className="w-6 h-6 text-white group-hover:scale-110 transition-transform duration-300" />
+                  <span className="text-white font-black text-lg">MTS</span>
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-xl gradient-text-rainbow">
-                  Creative Studio
+                  MTS Static Creative Studio
                 </span>
                 <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium tracking-wider uppercase">
-                  Apparel Generator
+                  AI-Powered Apparel Creatives
                 </span>
               </div>
             </div>
@@ -140,7 +175,7 @@ export default function Home() {
         <div className="relative py-10 bg-gradient-to-b from-transparent via-violet-500/5 to-pink-500/5 dark:via-violet-500/10 dark:to-pink-500/10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-              {/* Branding */}
+              {/* Creator Info */}
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-pink-500 rounded-xl blur-md opacity-50" />
@@ -149,19 +184,35 @@ export default function Home() {
                   </div>
                 </div>
                 <span className="text-sm font-bold gradient-text-purple-pink">
-                  Powered by AI
+                  Built by Kiro Morris
                 </span>
               </div>
 
-              {/* Tagline */}
-              <p className="text-center text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-                Create stunning social media creatives in minutes
-              </p>
+              {/* Links */}
+              <div className="flex items-center gap-4 text-sm">
+                <a
+                  href="https://myturtle.store"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors font-medium"
+                >
+                  myturtle.store
+                </a>
+                <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                <a
+                  href="https://instagram.com/kiro.morris"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-pink-500 dark:hover:text-pink-400 transition-colors font-medium"
+                >
+                  @kiro.morris
+                </a>
+              </div>
 
               {/* Version badge */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
-                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400 animate-pulse shadow-lg shadow-emerald-500/50" />
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">v1.0 Live</span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/10 to-pink-500/10 border border-violet-500/20">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-400 to-pink-400 animate-pulse shadow-lg shadow-violet-500/50" />
+                <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">v1.18</span>
               </div>
             </div>
           </div>
